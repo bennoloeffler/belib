@@ -1,6 +1,6 @@
 (ns belib.core)
 
-(defn foo
-  "I don't do a whole lot."
-  [x]
-  (println x "Hello, World!"))
+(defn test-belib
+  "get a string to see that the lib works"
+  []
+  "BELs lib is working... XXX")
