@@ -1,52 +1,72 @@
 # belib
 
-A Clojure library.
-Tools and helper functions collected by 
-Benno Löffler. Short: BEL. Therefore: belib...
+A personal clojure library.  
+Tools and helper functions  
+collected by Benno Löffler.  
+Short: BEL. So: belib
 
 ## Usage
 
-just use it from clojars. See current version.
+1. Just use it from clojars. 
+See current version.
 ```
-[belib "0.1.0]
+lein search belib
 ```
 
-just install it locally by
+Examples:
 ```
+[belib "X.Y.Z]
+[belib "X.Y.Z-SNAPSHOT]
+```
+
+Or 
+2. checkout and install it locally by
+
+```
+cd ~/projects
+git clone https://github.com/bennoloeffler/belib.git
+cd belib
 lein install
 ```
+And maybe  
 
-Checkout to "projects/belib" and  
-use lein checkout dependencies.
-CD into target project, e.g. projects/x
-THIS DOES NOT WORK WITH CURSIVE.
+3. Use lein checkout dependencies  
+in the target project x,  
+if you would like to adapt belib:
 ```
-cd projects/x
+cd ~/projects/x
 mkdir checkouts
 cd checkouts
 ln -s ../../belib
 ```
-just checkout to projects folder,  
-make a symbolic link from  
-src of app into src from belib
-```
-cd src/clj
-ln -s ../../../belib/src/belib
-```
 
-finally, it looks like
+finally, it looks like  
+in your **projects** folder:
 ```
-re-pipe (the app)
+x (the app)
+│
+├── checkouts
+│         └── belib -> ../../belib 
 └── src
       ├── clj
-      │  ├── belib -> ../../../belib/src/belib
-      │  └── re_pipe
+      │  └── x
       ├── cljc
-      │  └── re_pipe
+      │  └── x
       └── cljs
-         └── re_pipe
-    
+         └── x
+belib
+└── src
+      ├── cljc
+      └── clj    
 ```
+Should work with repl.  
+**In order to make it work with cursive,
+import the project.clj of belib in the
+target app x.** by clicking on it and importing it.  
+**THEN, you need to LOAD THE SOURCE FILES manually**.  
+Otherwise, the locally installed jar will be used! 
+If a target project of belib in intellij exists,    
+it seems to be overwritten and broken afterwards...  
 
 ## License
 
