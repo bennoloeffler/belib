@@ -4,6 +4,8 @@
             #?(:clj [belib.test :as bt :refer [expect-ex]]
                :cljs [belib.test :as bt :refer-macros [expect-ex]])))
 
+(hyperfiddle.rcf/enable! false)
+
 (defn fail-fun []
   (throw (ex-info "ERR" {})))
 

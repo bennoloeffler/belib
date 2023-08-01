@@ -10,9 +10,7 @@
                            [tick "0.6.2"]
                            [clojure.java-time "1.2.0"]
                            [com.hyperfiddle/rcf "20220405"]
-                           [net.cgrand/macrovich "0.2.1"]]
-
+                           [net.cgrand/macrovich "0.2.1"]
+                           [funcool/cuerdas "2022.06.16-403"]]
             :source-paths ["src/cljc"]
-
-
             :repl-options {:init-ns belib.core})

@@ -13,7 +13,7 @@
   #?(:clj
      (:import [java.time LocalDateTime LocalDate])))
 
-(hyperfiddle.rcf/enable! true)
+(hyperfiddle.rcf/enable! false)
 
 ;;-----------------------------------------------
 ;; simple id
@@ -153,8 +153,8 @@
     #_(s/gen (s/int-in 0 (* 365 100)))
 
     ; 2010-01-04 until 2039-12-31 (including)
-    (s/gen (s/int-in start-epoch-day
-                     end-epoch-day))))
+    (s/gen (s/int-in (.toEpochDay (t/date "2022-01-04")) #_start-epoch-day
+                     (.toEpochDay (t/date "2024-01-04")) #_end-epoch-day))))
 
 
 (s/def :belib/local-date
