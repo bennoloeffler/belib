@@ -1,10 +1,14 @@
 (ns belib.core
   (:require [tick.core :as t]
             [hyperfiddle.rcf :refer [tests]]
-            [clojure.spec.alpha :as s]))
+            [clojure.spec.alpha :as s]
+            [time-literals.read-write]))
 
-(hyperfiddle.rcf/enable! true)
 
+#?(:cljs (time-literals.read-write/print-time-literals-cljs!)
+   :clj (time-literals.read-write/print-time-literals-clj!))
+
+(hyperfiddle.rcf/enable! false)
 
 #_(defn debug-tools
     "get all the needed tools for debugging

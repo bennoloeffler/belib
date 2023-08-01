@@ -11,6 +11,7 @@
                                                   clog_ clogn_ dbg_ dbgn_ break_]]))
   #?(:clj (:import [java.time LocalDateTime LocalDate Instant])))
 
+(hyperfiddle.rcf/enable! false)
 
 (comment
   (dbgn (+ 3 (- 4 5))))
@@ -102,6 +103,23 @@
 (tests
   (count abs-week-map) := 10954) ; about 11.000 days
 
+(defn init-abs-week-to-year-week-map []
+  (reduce (fn [acc  val]
+            (into acc
+                  [[(first val) [(second val) (last val)]]]))
+          {}
+          (set (vals abs-week-map))))
+
+(def abs-week-to-year-week-map (init-abs-week-to-year-week-map))
+
+(defn week-year-from-abs-week [abs-week]
+  (abs-week-to-year-week-map abs-week))
+
+(tests
+  (week-year-from-abs-week 1) := [2010 1])
+
+
+
 (def first-date (first (first abs-week-map)))
 (def last-date (first (last abs-week-map)))
 
@@ -130,6 +148,7 @@
   "Returns current time as abs week: [abs-week year cal-week]"
   []
   (get-abs-week (t/date)))
+
 
 (comment ; needed?
   (defprotocol ToLocal

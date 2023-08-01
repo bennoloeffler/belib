@@ -16,7 +16,7 @@
               [java.util Date])))
 
 
-(hyperfiddle.rcf/enable!)
+(hyperfiddle.rcf/enable! false)
 
 
 (def d t/date)

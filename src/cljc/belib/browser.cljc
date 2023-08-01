@@ -1,10 +1,14 @@
 (ns belib.browser
   (:require [cljs.reader :as r]
             [clojure.pprint :refer [pprint]]
+    ;https://funcool.github.io/cuerdas/latest/user-guide.html
+            [cuerdas.core :as str]
             [goog.functions]
-            [goog.object :as gobj]))
+            [goog.object :as gobj]
+            [hyperfiddle.rcf :refer [tests]]))
 
 
+(hyperfiddle.rcf/enable! true)
 
 (comment
   ;; see belib.date-time
@@ -25,30 +29,36 @@
 (comment
   (def json "{\"foo\": 1, \"bar\": 2, \"baz\": [1,2,3]}")
   (def a (.parse js/JSON json))
-  (js->clj a)
-  (js->clj a :keywordize-keys true)
+  (cljs.core/js->clj a)
+  (cljs.core/js->clj a :keywordize-keys true)
 
   (def a2 (js-obj "foo" 1 "bar" 2))
   (js-obj->clj-map a2)
-  (js->clj a2 :keywordize-keys true))
+  (cljs.core/js->clj a2 :keywordize-keys true)
 
-;;
-;; debounce the simplest possible way in cljs
-;; Trailing edge debouncing
-;;
+  nil)
+
+(defn fn-name
+  "Return the name of the function fn."
+  [fn]
+  (let [s (str fn)
+        s (subs s 9 (clojure.string/index-of s "("))]
+    (second (re-matches #"^.*\$([^\$]+)$" s))))
+
+;;---------------------------------------------------------------
+;; debouncing
+;;---------------------------------------------------------------
+
 (defn debounced-later
-  "Calls function only after interval of silence."
+  "Calls function only after interval of silence.
+  Debounce the simplest possible way in cljs.
+  Trailing edge debouncing."
   [f interval]
   (goog.functions.debounce f interval))
 
 (comment
   (def d (debounced-later #(println (.getTime (js/Date.))) 500))
   (d))
-
-(defn fn-name [f]
-  (let [s (str f)
-        s (subs s 9 (clojure.string/index-of s "("))]
-    (second (re-matches #"^.*\$([^\$]+)$" s))))
 
 (defn debounced-now
   "Call f immediately and then at a highest frequency of interval milliseconds.
@@ -124,3 +134,102 @@
   "Remove the browser's localStorage value for the given `key`"
   [key]
   (.removeItem (.-localStorage js/window) key))
+
+;;------------------------------------------------------------
+;; react events
+;;------------------------------------------------------------
+
+(def all-events-raw
+  "Lists all react events in camelCase.
+  See: https://legacy.reactjs.org/docs/events.html
+  Use (.stopPropagation e) or (.preventDefault e)"
+
+  "onCopy onCut onPaste
+
+  onKeyDown onKeyPress onKeyUp
+
+  onFocus onBlur
+
+  onChange onInput onInvalid onReset onSubmit
+
+  onError onLoad
+
+  onClick onContextMenu onDoubleClick
+
+  onDrag onDragEnd onDragEnter
+  onDragExit onDragLeave onDragOver onDragStart onDrop
+
+  onMouseDown onMouseEnter onMouseLeave
+  onMouseMove onMouseOut onMouseOver onMouseUp
+
+  onPointerDown onPointerMove onPointerUp onPointerCancel
+  onGotPointerCapture onLostPointerCapture onPointerEnter
+  onPointerLeave onPointerOver onPointerOut
+
+  onSelect
+
+  onTouchCancel onTouchEnd onTouchMove onTouchStart
+
+  onScroll
+
+  onWheel
+
+  onAbort onCanPlay onCanPlayThrough onDurationChange onEmptied onEncrypted
+  onEnded onError onLoadedData onLoadedMetadata onLoadStart onPause onPlay
+  onPlaying onProgress onRateChange onSeeked onSeeking onStalled onSuspend
+  onTimeUpdate onVolumeChange onWaiting
+
+  onLoad onError
+
+  onAnimationStart onAnimationEnd onAnimationIteration
+
+  onToggle")
+
+(def all-events
+  "All react events as kebab keywords."
+  (as-> all-events-raw $
+        (clojure.string/split $ #"[ \n]")
+        (filter #(not= "" %) $)
+        #_(map csk/->kebab-case-keyword $)
+        (map #(keyword (str/kebab %)) $)))
+
+(comment
+  (keyword (str/kebab "abCdeFgh")))
+
+
+(defn merge-event [properties-map as-keyword]
+  (let [evt-handler (fn [event] (println (str as-keyword)))]
+    (merge properties-map
+           {as-keyword evt-handler})))
+
+(def all-events-map
+  "All react events as default event listeners:
+  {:on-drag-exit (fn [event] (println \":on-drag-exit\"))
+   ...}
+   Used with merge in hiccup properties:
+   [:div (merge {:some-prop :some-val}
+                all-events-map)
+          \"some-text\""
+  (reduce merge-event
+          {}
+          all-events))
+
+(defn filter-events-map
+  "Add react events with a regex.
+  Example
+  [:div (merge {:some-prop :some-val}
+               (filter-events-map #\"mo|dr\")
+        \"some-text\""
+  [re]
+  (let [filtered-events (filter
+                          #(re-find re (str %))
+                          all-events)]
+    (println "ADDING react events to test them interactively:")
+    (println filtered-events)
+    (reduce merge-event
+            {}
+            filtered-events)))
+
+(tests
+  (keys (filter-events-map #"copy|suspend")) := [:on-copy :on-suspend])
+
