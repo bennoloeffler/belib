@@ -104,7 +104,7 @@
   (count abs-week-map) := 10954) ; about 11.000 days
 
 (defn init-abs-week-to-year-week-map []
-  (reduce (fn [acc  val]
+  (reduce (fn [acc val]
             (into acc
                   [[(first val) [(second val) (last val)]]]))
           {}
@@ -228,3 +228,16 @@
     "See weekify-element. Does it for a coll of elements."
     [coll]
     (map weekify-element coll))
+(defn weeks-from-abs-weeks [start-week num-weeks]
+  (vec (map (fn [e] (week-year-from-abs-week (+ start-week e 1)))
+            (range num-weeks))))
+
+(defn weeks-indicators [all-year-weeks]
+  (map #(str (first %) "-" (second %)) all-year-weeks))
+
+(tests
+  (weeks-from-abs-weeks 0 3) := [[2010 1] [2010 2] [2010 3]]
+  (weeks-from-abs-weeks 701 1) := [[2023 24]]
+  (weeks-indicators (weeks-from-abs-weeks 0 3)) := '("2010-1" "2010-2" "2010-3")
+  nil)
+
