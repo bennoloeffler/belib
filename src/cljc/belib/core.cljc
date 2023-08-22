@@ -6,9 +6,9 @@
 
 
 #?(:cljs (time-literals.read-write/print-time-literals-cljs!)
-   :clj (time-literals.read-write/print-time-literals-clj!))
+   :clj  (time-literals.read-write/print-time-literals-clj!))
 
-(hyperfiddle.rcf/enable! false)
+(hyperfiddle.rcf/enable! true)
 
 #_(defn debug-tools
     "get all the needed tools for debugging
@@ -35,7 +35,7 @@
   with checkouts feature from lein."
   []
   (str "BELs lib seems to work.\n"))
-       ;"Compiled: " (compile-time)))
+;"Compiled: " (compile-time)))
 
 (comment
   (println (test-belib)))
@@ -90,10 +90,76 @@
                :clj  clojure.pprint/pprint))
 
 
-#_(tests
-    (expect-ex (assert false)) := AssertionError
-    (expect-ex (/ 1 0)) := ArithmeticException
-    (expect-ex ArithmeticException (/ 1 0)) := true)
+;;-------------------------------------------
+;; SORTING nested maps by keys in nested maps
+;;-------------------------------------------
+
+(defn sorted-map-by-keys
+  "Sort map by up to 3 nested keys:
+  sort-by-key-1 then-by-key-2 then-by-key-3
+  Finally by map key, if sort keys deliver equality.
+  ATTENTION: THIS WONT WORK FOR assoc, assoc-in or update,
+  because the values of the keys to make the comparison with
+  are not yet available. So adding elements will be done based
+  on the key value ONLY."
+  ([m sort-by-key-1 then-by-key-2 then-by-key-3]
+   (into (sorted-map-by (fn [key-a key-b]
+                          (- (compare [(get-in m [key-b sort-by-key-1])
+                                       (get-in m [key-b then-by-key-2])
+                                       (get-in m [key-b then-by-key-3])
+                                       key-b]
+                                      [(get-in m [key-a sort-by-key-1])
+                                       (get-in m [key-a then-by-key-2])
+                                       (get-in m [key-a then-by-key-3])
+                                       key-a]))))
+         m))
+  ([m sort-by-key then-by-key-2]
+   (sorted-map-by-keys m sort-by-key then-by-key-2 nil))
+  ([m sort-by-key]
+   (sorted-map-by-keys m sort-by-key nil nil))
+  ([m]
+   (sorted-map-by-keys m nil nil nil)))
+
+(comment
+  (into (sorted-map-by >) {:b "c" :a "x" :c "b"})
+  (type (sorted-map-by-keys {} :nix))
+  (sorted-map-by-keys {:E {:sequence-num 1 :val 23}
+                       :B {:sequence-num 2 :val 22}
+                       :C {:sequence-num 2 :val 53}
+                       :D {:sequence-num 5 :val 73}
+                       :F {:sequence-num 1 :val 10}
+                       :A {:sequence-num 1 :val 11}}
+                      :sequence-num :val))
+
+(tests
+  (let [m {:E {:sequence-num 1 :val 23 :part 1}
+           :B {:sequence-num 2 :val 22 :part 1}
+           :C {:sequence-num 2 :val 53 :part 2}
+           :D {:sequence-num 5 :val 73 :part 3}
+           :F {:sequence-num 1 :val 10}
+           :A {:sequence-num 1 :val 11}}]
+    ; sort just by key of map, when no other key is spefied
+    (keys (sorted-map-by-keys m)) := '(:A :B :C :D :E :F)
+    ; sort just by key of map, if specified key is not available
+    (keys (sorted-map-by-keys m :nothing)) := '(:A :B :C :D :E :F)
+    ; sort by the key given
+    (keys (sorted-map-by-keys m :val)) := '(:F :A :B :E :C :D)
+    ; if key is not ordered, use key of map: :A :E :F
+    (keys (sorted-map-by-keys m :sequence-num)) := '(:A :E :F :B :C :D)
+    ; sort first by first key, second by second
+    (keys (sorted-map-by-keys m :sequence-num :val)) := '(:F :A :E :B :C :D)
+    ; sorting by a partial key: nil is smaller than 3 (compare nil 3) := -1
+    ; so the ones without key come first and are sorted by map key
+    (keys (sorted-map-by-keys m :part)) := '(:A :F :B :E :C :D)
+    ; sorting partial key, sorting may fall back to map key (:A :F)
+    (keys (sorted-map-by-keys m :part :sequence-num)) := '(:A :F :E :B :C :D)
+
+    ; ATTENTION: won't work. :val=12 should be between :A and :B
+    ; like '(:F :A :X :B :E :C :D) but isn't: '(:X :F :A :B :E :C :D)
+    (keys (assoc (sorted-map-by-keys m :val) :X {:val 12})) := '(:X :F :A :B :E :C :D)))
+
+
+
 
 
 

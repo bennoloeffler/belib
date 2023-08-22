@@ -11,12 +11,12 @@
                                                   clog_ clogn_ dbg_ dbgn_ break_]]))
   #?(:clj (:import [java.time LocalDateTime LocalDate Instant])))
 
-(hyperfiddle.rcf/enable! false)
+(hyperfiddle.rcf/enable! true)
 
 (comment
-  (dbgn (+ 3 (- 4 5))))
-
-
+  (require 'playback.core) ; open the portal
+  (dbgn (+ 3 (- 4 5)))
+  (+ 3 (- 4 5)))
 
 ;;--------------------
 ;; time model of weeks
@@ -29,14 +29,20 @@
 ;; abs-week starts with 1 at 2010-01-04
 ;; abs-week ends with 1565 at 2039-12-31
 
-(defn date-infos-as-long-raw [tick-date]
+(defn date-infos-as-long-raw
+  "Creates the long 201501,
+  representing week 01 in year 2015
+  from the tick date 2014-12-31."
+  [tick-date]
   (assert (bd/date? tick-date))
   (let [[week-based-year week-of-week-based-year] (bd/iso-week-year tick-date)]
     (-> week-based-year
         (* 100)
         (+ week-of-week-based-year))))
 
-(def date-infos-as-long (memoize date-infos-as-long-raw))
+(def date-infos-as-long
+  "cached version"
+  (memoize date-infos-as-long-raw))
 
 (tests
   (date-infos-as-long (t/date "2014-12-31")) := 201501)

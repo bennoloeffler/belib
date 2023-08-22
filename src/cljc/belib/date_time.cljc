@@ -2,6 +2,7 @@
   (:require
     ;[clojure.test :as t]
     [tick.core :as t]
+    [cljc.java-time.temporal.chrono-unit :as cu]
     [hyperfiddle.rcf :refer [tests]]
     [tick.alpha.interval :as tai]
     [belib.core :as bc]
@@ -21,6 +22,7 @@
 
 (def d t/date)
 (def dt t/date-time)
+
 
 (defn date?
   "is it a LocalDate (js and jvm)"
@@ -127,10 +129,16 @@
   [start end]
   (assert (date? start))
   (assert (date? end))
-  (let [days (fn [s e] (dec (t/days (t/duration (tai/new-interval s e)))))]
-    (if (t/< end start)
-      (- (days end start))
-      (days start end))))
+  (cu/between cu/days start end)
+  #_(let [days (fn [s e] (dec (t/days (t/duration (tai/new-interval s e)))))]
+      (if (t/< end start)
+        (- (days end start))
+        (days start end))))
+
+; TODO use this
+(comment
+  (cu/between cu/days (d "2023-08-31") (d "2023-09-01"))
+  (cu/between cu/days (d "2023-09-30") (d "2023-09-29")))
 
 
 (tests

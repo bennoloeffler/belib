@@ -1,22 +1,24 @@
 (ns belib.test-test
   (:require [clojure.test :as t]
             [hyperfiddle.rcf :refer [tests]]
-            #?(:clj [belib.test :as bt :refer [expect-ex]]
+            #?(:clj  [belib.test :as bt :refer [expect-ex]]
                :cljs [belib.test :as bt :refer-macros [expect-ex]])))
 
-(hyperfiddle.rcf/enable! false)
+(hyperfiddle.rcf/enable! true)
+
+; EXAMPLE
+; see date-time.cljc, line 180
 
 (defn fail-fun []
   (throw (ex-info "ERR" {})))
 
-(comment
-  (def ab 4)
-  (instance? Symbol `ab)
-  (instance? js/Number 12) ; does not work in js
-  (type 34)
-  (= js/Number (type 17.0)))
-
 (tests
   (expect-ex (fail-fun)) := #?(:clj clojure.lang.ExceptionInfo :cljs cljs.core.ExceptionInfo))
 
+
+(tests
+  ; compiles in cljs but not in clj because js/Error ???
+  ;(expect-ex (assert false)) := #?(:clj java.lang.AssertionError :cljs js/Error)
+  (expect-ex (/ 1 0)) := #?(:clj java.lang.ArithmeticException :cljs ##Inf)
+  #?(:clj (expect-ex ArithmeticException (/ 1 0)) := true))
 
