@@ -7,8 +7,7 @@
 
   #?(:clj (:import [java.lang Throwable])))
 
-; TODO: create a macro that delivers complete Exception
-;       call ist 'return-ex'
+
 (defmacro expect-ex
   "check for exceptions in rcf tests:
 

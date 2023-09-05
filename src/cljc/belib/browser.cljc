@@ -8,7 +8,7 @@
             [hyperfiddle.rcf :refer [tests]]))
 
 
-(hyperfiddle.rcf/enable! true)
+(hyperfiddle.rcf/enable! false)
 
 (comment
   ;; see belib.date-time

@@ -4,7 +4,7 @@
             #?(:clj  [belib.test :as bt :refer [expect-ex return-ex]]
                :cljs [belib.test :as bt :refer-macros [expect-ex return-ex]])))
 
-(hyperfiddle.rcf/enable! true)
+(hyperfiddle.rcf/enable! false)
 
 ; EXAMPLE
 ; see date-time.cljc, line 180
@@ -21,7 +21,7 @@
                                    :cljs js/Error)
   (expect-ex (/ 1 0)) := #?(:clj  java.lang.ArithmeticException
                             :cljs ##Inf)
-  
+
   #?(:clj (expect-ex ArithmeticException (/ 1 0)) := true))
 
 

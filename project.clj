@@ -1,4 +1,4 @@
-(defproject belib "0.1.0-SNAPSHOT"
+(defproject belib "0.2.0-SNAPSHOT"
             :description "BELs utils lib"
             :url "https://github.com/bennoloeffler/belib.git"
             :license {:name "WTFPL – Do What the Fuck You Want to Public License"
