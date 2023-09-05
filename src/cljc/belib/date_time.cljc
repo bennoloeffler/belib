@@ -1,4 +1,53 @@
 (ns belib.date-time
+  "
+   ISO calendar weeks
+   in cljs and clj...
+   --------------------------
+
+   CONCEPTS:
+
+   1. Helper functions for iso weeks,
+   like eg:
+   (date-breakdown (t/date \"2027-01-03\"))
+   =>
+   {:month                   1,
+    :day                     3,
+    :year                    2027,
+    :week-based-year         2026,
+    :week-of-week-based-year 53
+    :day-of-week             :SUNDAY
+    :epoch-day               20821
+    :epoch-week              2974}
+
+   2. As epoch-day, an increasing calendar week:
+      epoch-week, based on epoch-day.
+      See function epoch-week-from-epoch-day
+      for details.
+
+        (epoch-week (t/date \"2023-12-31\"))
+        ;=> 2817
+
+        (cal-weeks-from-epoch-weeks 0 3)
+        ;=> [[1970 2 197002] [1970 3 197003] [1970 4 197004]]
+
+        (weeks-indicators (cal-weeks-from-epoch-weeks -2 3))
+        ;=> '(\"1969-52\" \"1970-1\" \"1970-2\")
+
+
+   3. weekify
+      Every date in a map, e.g. :birthday in the map
+      (def m {:name :Benno :birthday #time/date 1969-07-14})
+      can be weekified, that means, there will be a key:
+      :birthday-cw with calendar week data in the map.
+      (weekify m :birthday)
+      (weekify-element {:name :Benno :birthday (d \"2020-02-15\")}
+                       :birthday)\n\n
+      => {:name :Benno,
+          :birthday #time/date\"2020-02-15\",
+          :birthday-cw [528 2020 7 202007]}
+  "
+
+
   (:require
     ;[clojure.test :as t]
     [tick.core :as t]
@@ -43,10 +92,10 @@
 #_(comment
     (t/date? (d "2023-01-01")))
 
-(defn date-time?
-  "is it a LocalDateTime (js and jvm)"
-  [date-time]
-  (= LocalDateTime (type date-time)))
+#_(defn date-time?
+    "is it a LocalDateTime (js and jvm)"
+    [date-time]
+    (= LocalDateTime (type date-time)))
 
 (comment
   (= LocalDateTime (type (dt "2003-01-01T00:00")))
@@ -155,7 +204,6 @@
         (- (days end start))
         (days start end))))
 
-; TODO use this
 (comment
   (cu/between cu/days (d "2023-08-31") (d "2023-09-01"))
   (cu/between cu/days (d "2023-09-30") (d "2023-09-29")))
@@ -175,8 +223,8 @@
   ([start end]
    (duration start end t/millis))
   ([start end t-fun]
-   (assert (date-time? start))
-   (assert (date-time? end))
+   (assert (t/date-time? start))
+   (assert (t/date-time? end))
    (assert (t/<= start end) "start needs to be before or equal to end")
    (if (t/= start end)
      0
@@ -244,7 +292,7 @@
   #?(:cljs
      [(week-based-year tick-date) (week-of-week-based-year tick-date)]
 
-     :clj
+     :clj ; TODO improve speed?
      ;; (.get (LocalDate/of 2023 1 1) IsoFields/WEEK_OF_WEEK_BASED_YEAR)
      ;; (.get (LocalDate/of 2023 1 1) IsoFields/WEEK_BASED_YEAR)
      (let [all-data (jt/as-map tick-date)]
@@ -263,28 +311,28 @@
   nil)
 
 
-(def first-day-of-abs-week-0
-  "the definition of the origin of abs-week,
+#_(def first-day-of-abs-week-0
+    "the definition of the origin of abs-week,
   2009-12-28, put as epoch-day: 14606"
-  (.toEpochDay (d "2009-12-28")))
+    (.toEpochDay (d "2009-12-28")))
 
-(defn get-abs-week
-  "The absolute week increases by 1 every 7 days,
+#_(defn get-abs-week
+    "The absolute week increases by 1 every 7 days,
   beginning Monday, 2009-12-28 with 0.
   So 2010-01-04 is abs-week 1.
   And 2009-12-28 is abs-week -1."
-  [tick-date]
-  (let [days-diff (- (.toEpochDay tick-date)
-                     first-day-of-abs-week-0)
-        year      (t/year tick-date)
-        month     (t/year tick-date)
-        day       (t/day-of-month tick-date)]
-    (quot days-diff 7)))
+    [tick-date]
+    (let [days-diff (- (.toEpochDay tick-date)
+                       first-day-of-abs-week-0)
+          year      (t/year tick-date)
+          month     (t/year tick-date)
+          day       (t/day-of-month tick-date)]
+      (quot days-diff 7)))
 
-(tests
-  (get-abs-week (d "2009-12-21")) := -1
-  (get-abs-week (d "2009-12-28")) := 0
-  (get-abs-week (d "2010-01-04")) := 1)
+#_(tests
+    (get-abs-week (d "2009-12-21")) := -1
+    (get-abs-week (d "2009-12-28")) := 0
+    (get-abs-week (d "2010-01-04")) := 1)
 
 
 (defn epoch-week-from-epoch-day
@@ -325,10 +373,8 @@
         epoch-week (epoch-week-from-epoch-day epoch-day)]
     epoch-week))
 
-(def epoch-week-zero-start-day (d "1969-12-30"))
 
 (tests
-  ;(bd/date-breakdown (d "1970-01-05")) ; => MONDAY
 
   (let [test-data (->> (range -20 15)
                        (map (fn [val]
@@ -373,8 +419,6 @@
   (let [[y m d week-day epoch-day] (ymd-vec tick-date)
         [week-based-year week-of-week-based-year] (iso-week-year tick-date)
         epoch-week (epoch-week tick-date)]
-    ;abs-week (get-abs-week tick-date)]
-
     {:month                   m
      :day                     d
      :year                    y
@@ -383,7 +427,6 @@
      :day-of-week             week-day
      :epoch-day               epoch-day
      :epoch-week              epoch-week}))
-;:abs-week                abs-week}))
 
 (tests
   (date-breakdown (t/date "2027-01-03")) := {:month                   1,
@@ -396,8 +439,14 @@
                                              :epoch-week              2974})
 ;:abs-week                887})
 
+(def epoch-week-zero-start-day (d "1969-12-30"))
+
+(tests
+  (-> epoch-week-zero-start-day (t/<< 1) date-breakdown :epoch-week) := -1
+  (-> epoch-week-zero-start-day date-breakdown :epoch-week) := 0) ; => first day of week 0
+
 (defn get-date-data
-  "[1082 2030 39 203039]"
+  "[1082 2030 39]"
   [tick-date]
   (let [{:keys [epoch-week
                 week-based-year
@@ -522,7 +571,7 @@
     [week-based-year week-of-week-based-year (+ (* 100 week-based-year) week-of-week-based-year)]))
 
 
-(defn weeks-from-abs-weeks [start-week num-weeks]
+(defn cal-weeks-from-epoch-weeks [start-week num-weeks]
   (vec (map (fn [e] (week-year-from-abs-week (+ start-week e 1)))
             (range num-weeks))))
 
@@ -530,7 +579,10 @@
   (map #(str (first %) "-" (second %)) all-year-weeks))
 
 (tests
-  (weeks-from-abs-weeks 0 3) := [[1970 2 197002] [1970 3 197003] [1970 4 197004]] #_[[2010 1 201001] [2010 2 201002] [2010 3 201003]]
-  (weeks-from-abs-weeks 701 1) := [[1983 24 198324]]
-  (weeks-indicators (weeks-from-abs-weeks -2 3)) := '("1969-52" "1970-1" "1970-2")
+  (cal-weeks-from-epoch-weeks 0 3) := [[1970 2 197002] [1970 3 197003] [1970 4 197004]] #_[[2010 1 201001] [2010 2 201002] [2010 3 201003]]
+  (cal-weeks-from-epoch-weeks 701 1) := [[1983 24 198324]]
+  (weeks-indicators (cal-weeks-from-epoch-weeks -2 3)) := '("1969-52" "1970-1" "1970-2")
   nil)
+
+(comment
+  (epoch-week (t/date "2023-12-31")))
