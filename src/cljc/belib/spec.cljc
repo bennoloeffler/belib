@@ -1,7 +1,7 @@
 (ns belib.spec
   (:require
     [belib.core :refer [next-local-id]]
-    #?(:clj [belib.test :refer [expect-ex]]
+    #?(:clj  [belib.test :refer [expect-ex]]
        :cljs [belib.test :refer-macros [expect-ex]])
     [hyperfiddle.rcf :refer [tests]]
     ;[belib.date-time :as bdt]
@@ -19,7 +19,7 @@
 ;; simple id
 ;;-----------------------------------------------
 (defn gen-local-id []
-  (gen/fmap (fn [dummy](next-local-id))
+  (gen/fmap (fn [dummy] (next-local-id))
             (s/gen pos-int?)))
 
 (s/def :belib/local-id
@@ -139,8 +139,8 @@
 ;;-----------------------------------------------
 
 ; 2010-01-04 until 2039-12-31 (including)
-(def start-epoch-day (.toEpochDay (t/date "2010-01-04")))
-(def end-epoch-day (.toEpochDay (t/date "2040-01-01")))
+;(def start-epoch-day (.toEpochDay (t/date "2010-01-04")))
+;(def end-epoch-day (.toEpochDay (t/date "2040-01-01")))
 
 (defn gen-local-date
   "Generates LocalDate starting from
@@ -160,9 +160,10 @@
 (s/def :belib/local-date
   (s/spec
     (fn is-instance-of-LocalDate [date]
-      (and (instance? LocalDate date)
-           (>=  (.toEpochDay date) start-epoch-day)
-           (<  (.toEpochDay date) end-epoch-day)))
+      (t/date? date)
+      #_(and (instance? LocalDate date)
+             (>= (.toEpochDay date) start-epoch-day)
+             (< (.toEpochDay date) end-epoch-day)))
     :gen gen-local-date))
 
 (declare validate)
@@ -209,7 +210,8 @@
   (let [explanation (s/explain-str spec value)]
     (if (= explanation "Success!\n")
       value
-      (throw (ex-info explanation {:value value})))))
+      (do (println explanation)
+          (throw (ex-info explanation {:value value}))))))
 
 
 
