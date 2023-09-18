@@ -8,7 +8,7 @@
 #?(:cljs (time-literals.read-write/print-time-literals-cljs!)
    :clj  (time-literals.read-write/print-time-literals-clj!))
 
-(hyperfiddle.rcf/enable! false)
+(hyperfiddle.rcf/enable! true)
 
 #_(defn debug-tools
     "get all the needed tools for debugging
@@ -158,6 +158,30 @@
     ; like '(:F :A :X :B :E :C :D) but isn't: '(:X :F :A :B :E :C :D)
     (keys (assoc (sorted-map-by-keys m :val) :X {:val 12})) := '(:X :F :A :B :E :C :D)))
 
+(defn bigint?
+  "Returns true if n is a BigInt"
+  [n] (instance? clojure.lang.BigInt n))
+
+(defn pow
+  "(pow 2 3) = (* 2 2 2),
+  even with very big numbers.
+  Works with ints."
+  [n x]
+  (assert (or (int? n) (bigint? n)))
+  (assert (or (int? x) (bigint? x)))
+  (loop [nn 1N xx 0N]
+    ;(println n x nn xx)
+    (if (= x xx)
+      nn
+      (recur (* nn n) (inc xx)))))
+
+(tests
+  (pow 8 0) := 1
+  (pow 8 1) := 8
+  (pow 8 2) := 64
+  (pow 9223453453423423423423423423423698N 1) := 9223453453423423423423423423423698N
+
+  :end-test)
 
 
 

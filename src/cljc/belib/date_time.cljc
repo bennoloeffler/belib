@@ -482,7 +482,7 @@
   nil)
 
 
-(defn weekify-element
+(defn weekify
   "An element is a map that contains key k, e.g. :k as LocalDate.
   Returns the map with an additional key:
   :k-cw will be there representing the week
@@ -501,8 +501,27 @@
         week-k (get-week-data (k element)))
       (assoc element
         week-k (map #(get-week-data %) (k element))))))
+(tests
+  (weekify {:birthday (d "2034-12-01")} :birthday)
+  := {:birthday (t/date "2034-12-01"), :birthday-cw [3387 2034 48]})
+
+(defn weekify-in
+  [m ks date-key]
+  (let [_           (println "m: " m ", ks: " ks)
+        sub-m       (get-in m ks)
+        weekified   (weekify sub-m date-key)
+        m-weekified (assoc-in m ks weekified)]
+    m-weekified))
+(tests
+  (weekify-in [1 :benno]
+              [{} {:benno {:birthday (d "2034-12-01")}}]
+              :birthday)
+  := {:birthday (t/date "2034-12-01"), :birthday-cw [3387 2034 48]})
+
 
 (comment
+  (get-in [{} {:benno {:birthday (d "2034-12-01")}}]
+          [1 :benno])
   ;(dt (d "2027-01-03"))
   (bc/pprint (date-breakdown (t/date "2027-01-03")))
   (bc/pprint (date-breakdown (t/date "2027-01-03T00:00:00")))
@@ -615,5 +634,72 @@
   (weeks-indicators (weeks-col-from-epoch-weeks -2 3)) := '("1969-52" "1970-1" "1970-2")
   nil)
 
-(comment
-  (epoch-week (t/date "2023-12-31")))
+
+(defn epoch-day [tick-date]
+  (.toEpochDay tick-date))
+
+(tests
+  (epoch-week (t/date "1970-01-01")) := 0
+  (epoch-day (t/date "1970-01-01")) := 0)
+
+(defn rand-date-between [from-date to-date]
+  (let [start-epoch-day (epoch-day from-date)
+        end-epoch-day   (epoch-day to-date)
+        range           (- end-epoch-day start-epoch-day)]
+    (t/new-date (+ start-epoch-day (rand-int range)))))
+
+(tests
+  (-> (repeatedly 1000 #(rand-date-between (d "2023-01-01") (d "2023-01-10")))
+      (frequencies)
+      (keys)
+      (count)) := 9)
+
+(defn assoc-in-date
+  [m ks date-key date]
+  (let [m-date      (assoc-in m (conj ks date-key) date)
+        weekified   (weekify (get-in m-date ks) date-key)
+        m-weekified (assoc-in m-date ks weekified)]
+    m-weekified))
+
+(defn update-in-date [m ks date-key date-fn & args]
+  (let [m-date      (update-in m
+                               (conj ks date-key)
+                               #(apply date-fn (cons % args)))
+        weekified   (weekify (get-in m-date ks)
+                             date-key)
+        m-weekified (assoc-in m-date ks weekified)]
+    m-weekified))
+
+
+
+(tests
+  (assoc-in-date [{} {:benno {:birthday (d "2023-01-01")}}]
+                 [1 :benno]
+                 :birthday
+                 (d "1999-12-31"))
+  := [{} {:benno {:birthday    (d "1999-12-31"),
+                  :birthday-cw [1565 1999 52]}}]
+
+  (t/>> (d "2023-01-01") 5) := (d "2023-01-06")
+
+  "update-in-date with a function with one parameters"
+  (update-in-date [{} {:benno {:birthday (d "2023-01-01")}}]
+                  [1 :benno]
+                  :birthday
+                  t/>> 7)
+  := [{} {:benno {:birthday    (d "2023-01-08"),
+                  :birthday-cw [2766 2023 1]}}]
+
+
+  "update-in-date with a function with additional parameters"
+  (-> (update-in-date [{} {:benno {:birthday (d "2023-01-01")}}]
+                      [1 :benno]
+                      :birthday
+
+                      rand-date-between (d "2229-01-05")) ; faaaaaaaaar in future
+      (get-in [1 :benno :birthday-cw])
+      first
+      get-first-epoch-day-from-epoch-week
+      t/new-date
+      (t/> (d "2023-01-01")))
+  := true)

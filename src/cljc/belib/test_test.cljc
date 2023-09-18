@@ -4,7 +4,7 @@
             #?(:clj  [belib.test :as bt :refer [expect-ex return-ex]]
                :cljs [belib.test :as bt :refer-macros [expect-ex return-ex]])))
 
-(hyperfiddle.rcf/enable! false)
+(hyperfiddle.rcf/enable! true)
 
 ; EXAMPLE
 ; see date-time.cljc, line 180
@@ -13,6 +13,12 @@
   (throw (ex-info "ERR" {:data "some"})))
 
 (tests
+
+  ; DOES NOT WORK
+  ;(assert (fail-fun)) :throws clojure.lang.ExceptionInfo
+  ;(fail-fun) :throws cljs.core.ExceptionInfo
+  ;(assert false "boom") :throws java.lang.AssertionError
+
   (expect-ex (fail-fun)) := #?(:clj  clojure.lang.ExceptionInfo
                                :cljs cljs.core.ExceptionInfo)
 
