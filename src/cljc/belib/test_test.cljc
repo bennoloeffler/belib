@@ -1,8 +1,8 @@
 (ns belib.test-test
   (:require [clojure.test :as t]
             [hyperfiddle.rcf :refer [tests]]
-            #?(:clj  [belib.test :as bt :refer [expect-ex return-ex]]
-               :cljs [belib.test :as bt :refer-macros [expect-ex return-ex]])))
+            #?(:clj  [belib.test :as bt :refer [expect-ex return-ex return-error-kw-if-ex]]
+               :cljs [belib.test :as bt :refer-macros [expect-ex return-ex return-error-kw-if-ex]])))
 
 (hyperfiddle.rcf/enable! true)
 
@@ -33,6 +33,7 @@
 
 
 (tests
+  "handle details of errors"
   (ex-data (return-ex (fail-fun))) := {:data "some"}
   (ex-message (return-ex (fail-fun))) := "ERR"
 
@@ -46,3 +47,6 @@
      :clj  (ex-message (return-ex (throw (RuntimeException. "something else")))) := "something else"))
 
 
+(tests
+  "unify tests, if exceptions are different in cljs and clj - eg when parsing dates"
+  (return-error-kw-if-ex (fail-fun)) := :error)

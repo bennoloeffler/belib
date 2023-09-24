@@ -14,4 +14,10 @@
                            [funcool/cuerdas "2022.06.16-403"]
                            [metosin/malli "0.11.0"]]
             :source-paths ["src/cljc"]
+            :aliases {"kaocha"   ["with-profile" "+kaocha" "run" "-m" "kaocha.runner" #_"--plugin" #_"notifier" "--watch"]
+                      "coverage" ["with-profile" "+kaocha" "run" "-m" "kaocha.runner" "--plugin" "cloverage"]}
+            :profiles {:kaocha
+                       {:dependencies [[lambdaisland/kaocha "1.67.1055"]
+                                       [lambdaisland/kaocha-cloverage "1.0.75"]]}}
+
             :repl-options {:init-ns belib.core})

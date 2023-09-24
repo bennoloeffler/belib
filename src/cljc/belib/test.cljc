@@ -47,13 +47,8 @@
   "check for exceptions in rcf tests
   and returns it. So you can check details.
 
-  :clj
-  (tests
-    (return-ex (/ 1 0)) := ArithmeticException)
-
-  :cljs
-  (tests
-    (return-ex (/ 1 0)) := js/XXX )
+    #?(:cljs (ex-message (return-ex (throw (js/Error. \"something\")))) := \"something\"
+       :clj  (ex-message (return-ex (throw (RuntimeException. \"something else\")))) := \"something else\"))
 
   You need:
    [com.hyperfiddle/rcf \"20220405\"] in project.clj
@@ -66,4 +61,23 @@
     `(try ~expr
           (catch Throwable e# e#))))
 
-;(defmacro ex->val [x])
+
+(defmacro return-error-kw-if-ex
+  "check for exceptions in rcf tests
+  and returns it. So you can check details.
+
+  :clj and :cljs
+  (tests
+    (return-error-kw-if-ex (/ 1 0)) := :error)
+
+  You need:
+   [com.hyperfiddle/rcf \"20220405\"] in project.clj
+   [hyperfiddle.rcf :refer [tests]] required and
+   (hyperfiddle.rcf/enable! true)"
+  [expr]
+  (if (:ns &env) ;; :ns only exists in CLJS
+    `(try ~expr
+          (catch js/Error e# :error))
+    `(try ~expr
+          (catch Throwable e# :error))))
+

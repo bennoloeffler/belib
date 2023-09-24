@@ -86,8 +86,8 @@
         id2 (next-local-id)]
     id1 :<> id2))
 
-(def pprint #?(:cljs cljs.pprint/pprint
-               :clj  clojure.pprint/pprint))
+(def bpp #?(:cljs cljs.pprint/pprint
+            :clj  clojure.pprint/pprint))
 
 
 ;;-------------------------------------------
@@ -158,30 +158,120 @@
     ; like '(:F :A :X :B :E :C :D) but isn't: '(:X :F :A :B :E :C :D)
     (keys (assoc (sorted-map-by-keys m :val) :X {:val 12})) := '(:X :F :A :B :E :C :D)))
 
+;; this is for pow - especially in js
 (defn bigint?
   "Returns true if n is a BigInt"
-  [n] (instance? clojure.lang.BigInt n))
+  [n]
+  #?(:clj  (instance? clojure.lang.BigInt n)
+     :cljs (= js/BigInt (type n))))
 
 (defn pow
   "(pow 2 3) = (* 2 2 2),
   even with very big numbers.
-  Works with ints."
+  Works with ints.
+  ATTENTION: delivers js/BigInt in js."
   [n x]
-  (assert (or (int? n) (bigint? n)))
-  (assert (or (int? x) (bigint? x)))
-  (loop [nn 1N xx 0N]
-    ;(println n x nn xx)
-    (if (= x xx)
-      nn
-      (recur (* nn n) (inc xx)))))
+  (assert (or (bigint? n) (int? n)))
+  (assert (or (bigint? x) (int? x)))
+  #?(:cljs (let [n (js/BigInt n)
+                 x (js/BigInt x)]
+             (loop [result (js/BigInt 1) counter (js/BigInt 0)]
+               ;(println n x nn xx)
+               (if (= x counter)
+                 result
+                 (recur (* result n)
+                        (+ counter (js/BigInt 1))))))
+     :clj  (loop [result  1N
+                  counter 0N]
+             ;(println n x nn xx)
+             (if (= x counter)
+               result
+               (recur (* result n)
+                      (+ counter 1))))))
 
-(tests
-  (pow 8 0) := 1
-  (pow 8 1) := 8
-  (pow 8 2) := 64
-  (pow 9223453453423423423423423423423698N 1) := 9223453453423423423423423423423698N
+;(pow (js/BigInt 4) (js/BigInt 4))
 
-  :end-test)
+(comment
+  (bigint? 15)
+  (bigint? 12N)
+  (def bi (js/BigInt 10))
+  (* bi bi)
+  (= js/BigInt (type (js/BigInt 12)))
+  (bigint? (js/BigInt 12))
+  ; error in js:
+  (+ 4 (pow 4 4)) ; cant get BigInt back to Number
+  ;(+ 4 (.-asIntN (pow 4 4)))
+  (+ 4 (js/Number (pow 4 4)))
+  (pow (js/BigInt 10) (js/BigInt 1000))
+  ;(+ 9007199254740991 2)
+  ;(+ 9007199254740991N 2N)
+  ;(instance? js/BigInt 234234234234234243243N)
+  ;(type 234234232345324523452345324523452345234523454234234243234213434534534534534543N)
+  ;(bigint? 23N)
+
+  :end)
+
+
+
+#?(:clj
+   (tests
+
+     "just the normal test"
+     (pow 8 0) := 1
+     (pow 8 1) := 8
+     (pow 8 2) := 64
+
+     "convert back"
+     (+ 6 (pow 8 2)) := 70
+
+     "big numbers"
+     (pow 9223453453423423423423423423423698N 1)
+     := 9223453453423423423423423423423698N
+
+     :end-test)
+
+   :cljs
+   (tests
+
+     "just the normal test"
+     (pow 8 0) := (js/BigInt 1)
+     (pow 8 1) := (js/BigInt 8)
+     (pow 8 2) := (js/BigInt 64)
+
+     "convert back"
+     (+ 6 (js/Number (pow 8 2))) := 70
+
+
+     (pow (js/BigInt 9223453453423423423423423423423698) 1)
+     := (js/BigInt 9223453453423423423423423423423698)
+
+     ; DOES NOT WORK???
+     ;(pow (js/BigInt 9223453453423423423423423423423698) 2)
+     ;:= (js/BigInt 85072093607468470411023697411718203977321564214944340144834650046464)
+
+     :end-test))
+
+(comment
+  (parse-long "10")
+  (long (bigdec "100.0")))
+
+(defn parse-long [x]
+  #?(:cljs (js/parseInt x 10) :clj (Long/valueOf x)))
+
+#?(:clj
+   (tests
+     (def longest (str Long/MAX_VALUE))
+     (parse-long longest) := Long/MAX_VALUE ;9223372036854775807
+     :end-test))
+
+#?(:cljs
+   (tests
+     (def longest (str (.-MAX_SAFE_INTEGER js/Number)))
+     (parse-long longest) := (.-MAX_SAFE_INTEGER js/Number) ; 9007199254740991
+     :end-test))
+
+
+
 
 
 
