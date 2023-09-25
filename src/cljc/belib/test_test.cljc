@@ -9,6 +9,19 @@
 ; EXAMPLE
 ; see date-time.cljc, line 180
 
+(tests
+
+  "test exceptions"
+
+  ;; hyperfiddle :throws does not work!
+  ;;(assert false "boom") :throws #?(:clj java.lang.AssertionError :cljs js/Error)
+
+  ;; this does work!
+  (expect-ex (assert false "boom")) := #?(:clj java.lang.AssertionError :cljs js/Error)
+
+  :end-test)
+
+
 (defn fail-fun []
   (throw (ex-info "ERR" {:data "some"})))
 

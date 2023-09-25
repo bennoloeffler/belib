@@ -2,6 +2,7 @@
   (:require [tick.core :as t]
             [hyperfiddle.rcf :refer [tests]]
             [clojure.spec.alpha :as s]
+            [clojure.string :as str]
             [time-literals.read-write]))
 
 
@@ -100,8 +101,9 @@
   Finally by map key, if sort keys deliver equality.
   ATTENTION: THIS WONT WORK FOR assoc, assoc-in or update,
   because the values of the keys to make the comparison with
-  are not yet available. So adding elements will be done based
-  on the key value ONLY."
+  are not yet available, when adding.
+  So adding elements will be done based
+  on the key value of the new element ONLY."
   ([m sort-by-key-1 then-by-key-2 then-by-key-3]
    (into (sorted-map-by (fn [key-a key-b]
                           (- (compare [(get-in m [key-b sort-by-key-1])
@@ -269,6 +271,40 @@
      (def longest (str (.-MAX_SAFE_INTEGER js/Number)))
      (parse-long longest) := (.-MAX_SAFE_INTEGER js/Number) ; 9007199254740991
      :end-test))
+
+(defn long-str [& strings] (str/join "\n" strings))
+(defn long-str-one-line [& strings] (str/join "" strings))
+
+(defn str-re
+  "Convert regex to string that may be appended to other regex str.
+   This is needed for cljs."
+  [re]
+  #?(:cljs (subs (str re) 1 (dec (count (str re))))
+     :clj  (str re)))
+
+(defn long-re
+  "Append different regexes to one:
+  (long-re #\"\\d|\"
+           #\"\\d\")"
+  [& regexes] (re-pattern (str/join "" (map str-re regexes))))
+
+
+(tests
+  "compare patterns only by string. They are not compared by value, but by identity."
+  (str-re (re-pattern (str-re #"\d"))) := (str-re #"\d")
+
+  "append regexes"
+  (str-re (long-re #"\d|"
+                   #"\d")) := (str-re #"\d|\d")
+
+  "append strings"
+  (long-str "one long"
+            "two long") := "one long\ntwo long"
+
+  (long-str-one-line "one-long, "
+                     "two-long") := "one-long, two-long"
+
+  :end-tests)
 
 
 

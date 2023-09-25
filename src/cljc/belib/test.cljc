@@ -1,23 +1,31 @@
 (ns belib.test
-  #?(:clj
-     (:require [net.cgrand.macrovich :as macros])
-     :cljs
-     (:require-macros [net.cgrand.macrovich :as macros]
-       #_[belib.test :refer [expect-ex]]))
+  (:require
+    [hyperfiddle.rcf :refer [tests]]
+    #_#?(:clj
+         (:require [net.cgrand.macrovich :as macros])
+         :cljs
+         (:require-macros [net.cgrand.macrovich :as macros])))
+  ;#?(:cljs (:require-macros [belib.test :refer [expect-ex]])) ;
+  (:import
+    #?(:clj [java.lang Throwable])))
 
-  #?(:clj (:import [java.lang Throwable])))
+;(hyperfiddle.rcf/enable! true)
 
+;; THE PROBLEM: cant use :throws from hyperfiddle.rfc
+;; see belib.test-test
 
 (defmacro expect-ex
-  "check for exceptions in rcf tests:
+  "check for exceptions in rcf tests,
+  since :throws does not work.
 
   :clj
   (tests
-    (expect-ex (/ 1 0)) := ArithmeticException)
+    (expect-ex (/ 1 0)) := ArithmeticException
+    (expect-ex ArithmeticException (/ 1 0)) := true)
 
   :cljs
   (tests
-    (expect-ex (/ 1 0)) := js/XXX )
+    (expect-ex (boom)) := js/Error )
 
   You need:
    [com.hyperfiddle/rcf \"20220405\"] in project.clj
@@ -44,7 +52,7 @@
 
 
 (defmacro return-ex
-  "check for exceptions in rcf tests
+  "Check for exceptions in rcf tests
   and returns it. So you can check details.
 
     #?(:cljs (ex-message (return-ex (throw (js/Error. \"something\")))) := \"something\"
@@ -63,8 +71,9 @@
 
 
 (defmacro return-error-kw-if-ex
-  "check for exceptions in rcf tests
-  and returns it. So you can check details.
+  "Check for exceptions in rcf tests
+  and returns :error if one get's thrown.
+  So you can't check details.
 
   :clj and :cljs
   (tests
@@ -80,4 +89,3 @@
           (catch js/Error e# :error))
     `(try ~expr
           (catch Throwable e# :error))))
-
