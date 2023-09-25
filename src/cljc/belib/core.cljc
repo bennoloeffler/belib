@@ -5,6 +5,10 @@
             [clojure.string :as str]
             [time-literals.read-write]))
 
+;;
+;; MORE TOOLS
+;; see: https://github.com/weavejester/medley
+;;
 
 #?(:cljs (time-literals.read-write/print-time-literals-cljs!)
    :clj  (time-literals.read-write/print-time-literals-clj!))
