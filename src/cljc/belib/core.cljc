@@ -311,8 +311,55 @@
   :end-tests)
 
 
+(defn swap
+  "Swaps values of idx1 and idx2 in vector.
+   (swap [0 1 2 3] 1 2) ;=> [0 2 1 3]"
+  [v idx1 idx2]
+  (if v (let [val1 (get v idx1)
+              val2 (get v idx2)]
+          (-> v
+              (assoc idx1 val2)
+              (assoc idx2 val1)))
+        nil))
 
+(tests
+  (swap [0 1 2 3] 1 2) := [0 2 1 3]
+  (swap [0 1 2 3] 1 1) := [0 1 2 3]
+  (swap [0 1 2 3] 0 3) := [3 1 2 0]
+  (swap [0 1 2 3] 3 0) := [3 1 2 0]
+  (swap [0 1 2 3] 0 4) := [nil 1 2 3 0]
+  (swap [0 1 2 3] 4 0) := [nil 1 2 3 0]
 
+  (swap nil -1 2) := nil
+  :end-tests)
+
+(defn balanced? [s]
+  (->> s
+       ;; remove non-bracket characters
+       (filter #{\[ \] \( \) \{ \}})
+
+       ;; reduce down to an empty or non-empty vector
+       (reduce
+         (fn [stack item]
+           (cond
+             (#{\( \{ \[} item)
+             (conj stack item)
+
+             (and (#{\( \{ \[} (last stack))
+                  (= ({\) \(, \} \{, \] \[} item) (last stack)))
+             (pop stack)
+
+             :else (conj stack item)))
+         [])
+       ;; return whether we have any unbalanced brackets
+       empty?))
+
+(tests
+  "balanced"
+  (balanced? "(s(b [ asdfsaf ] {} ))") := true
+  (balanced? "") := true
+  (balanced? "()(") := false
+  (balanced? "(})") := false)
 
 
 
