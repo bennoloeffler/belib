@@ -1,6 +1,8 @@
 (ns belib.core
   (:require [tick.core :as t]
             [hyperfiddle.rcf :refer [tests]]
+            #?(:clj  [belib.test :as bt :refer [expect-ex return-ex return:error-if-ex]]
+               :cljs [belib.test :as bt :refer-macros [expect-ex return-ex return:error-if-ex]])
             [clojure.spec.alpha :as s]
             [clojure.string :as str]
             [time-literals.read-write]))
@@ -13,7 +15,7 @@
 #?(:cljs (time-literals.read-write/print-time-literals-cljs!)
    :clj  (time-literals.read-write/print-time-literals-clj!))
 
-(hyperfiddle.rcf/enable! true)
+(hyperfiddle.rcf/enable! false)
 
 #_(defn debug-tools
     "get all the needed tools for debugging
@@ -91,8 +93,8 @@
         id2 (next-local-id)]
     id1 :<> id2))
 
-(def bpp #?(:cljs cljs.pprint/pprint
-            :clj  clojure.pprint/pprint))
+(def pp #?(:cljs cljs.pprint/pprint
+           :clj  clojure.pprint/pprint))
 
 
 ;;-------------------------------------------
@@ -315,12 +317,15 @@
   "Swaps values of idx1 and idx2 in vector.
    (swap [0 1 2 3] 1 2) ;=> [0 2 1 3]"
   [v idx1 idx2]
-  (if v (let [val1 (get v idx1)
-              val2 (get v idx2)]
-          (-> v
-              (assoc idx1 val2)
-              (assoc idx2 val1)))
-        nil))
+  (if v
+    (if (= idx1 idx2)
+      v
+      (let [val1 (get v idx1)
+            val2 (get v idx2)]
+        (-> v
+            (assoc idx1 val2)
+            (assoc idx2 val1))))
+    nil))
 
 (tests
   (swap [0 1 2 3] 1 2) := [0 2 1 3]
@@ -364,3 +369,77 @@
 
 
 
+(defn idx-map
+  "Returns a map of elements of the vector vec with the idx as key."
+  [vec]
+  (assert (vector? vec))
+  (into {} (map-indexed (fn [idx entity] [idx entity]) vec)))
+
+(tests
+  (idx-map [{:a :b} {:c :d}])
+  := {0 {:a :b}, 1 {:c :d}}
+
+  :end-tests)
+
+(defn id-map
+  "Returns a map with the entity-ids as keys, like, e.g.:
+  {2 {:eid 2
+      :age 16
+      :male false}
+   3 {:eid 3
+      :age 16
+      :male true}}
+
+  Even if the map has different keys:
+  {2222 {:eid 2 :age 16 :male false} 3333 {:eid 3 :age 16 :male true}}
+  Will result in:
+  {2 {:eid 2 :age 16 :male false} 3 {:eid 3 :age 16 :male true}}
+
+   you may also need such a lookup-table from a vector of entities:
+   [{:eid 2
+     :age 16
+     :male false}
+    {:eid 3
+     :age 16
+     :male true}]
+   "
+  [coll entity-id-key]
+  (let [data (if (map? coll)
+               (vals coll)
+               coll)]
+    (into {} (mapv (fn [{entity-id entity-id-key :as entity}]
+                     (assert (some? entity-id) (str "every entity needs to be a map with entity-id called: " entity-id-key))
+                     [entity-id entity])
+                   data))))
+
+(tests
+
+  (id-map {22222 {:eid  2
+                  :age  16
+                  :male false}
+           33333 {:eid  3
+                  :age  16
+                  :male true}} :eid)
+  := {2 {:eid 2, :age 16, :male false}, 3 {:eid 3, :age 16, :male true}}
+
+  (id-map [{;:eid  2
+            :age  16
+            :male false}
+           {:eid  3
+            :age  16
+            :male true}] :eid)
+  := {2 {:eid 2, :age 16, :male false}, 3 {:eid 3, :age 16, :male true}}
+
+  (-> [{;:eid  2 ; MISSING!
+        :age  16
+        :male false}
+       {:eid  3
+        :age  16
+        :male true}]
+      (id-map :eid)
+      return-ex
+      ex-message)
+  := "Assert failed: every entity needs to be a map with entity-id called: :eid\n(some? entity-id)"
+
+
+  :end-tests)

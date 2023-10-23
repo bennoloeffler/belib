@@ -13,7 +13,7 @@
   #?(:clj
      (:import [java.time LocalDateTime LocalDate])))
 
-(hyperfiddle.rcf/enable! true)
+(hyperfiddle.rcf/enable! false)
 
 ;;-----------------------------------------------
 ;; simple id

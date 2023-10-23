@@ -9,7 +9,7 @@
   (:import
     #?(:clj [java.lang Throwable])))
 
-;(hyperfiddle.rcf/enable! true)
+;(hyperfiddle.rcf/enable! false)
 
 ;; THE PROBLEM: cant use :throws from hyperfiddle.rfc
 ;; see belib.test-test
@@ -70,14 +70,14 @@
           (catch Throwable e# e#))))
 
 
-(defmacro return-error-kw-if-ex
+(defmacro return:error-if-ex
   "Check for exceptions in rcf tests
   and returns :error if one get's thrown.
   So you can't check details.
 
   :clj and :cljs
   (tests
-    (return-error-kw-if-ex (/ 1 0)) := :error)
+    (return:error-if-ex (/ 1 0)) := :error)
 
   You need:
    [com.hyperfiddle/rcf \"20220405\"] in project.clj

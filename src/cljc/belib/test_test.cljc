@@ -1,10 +1,11 @@
 (ns belib.test-test
   (:require [clojure.test :as t]
+            [borkdude.deflet :refer [deflet]]
             [hyperfiddle.rcf :refer [tests]]
-            #?(:clj  [belib.test :as bt :refer [expect-ex return-ex return-error-kw-if-ex]]
-               :cljs [belib.test :as bt :refer-macros [expect-ex return-ex return-error-kw-if-ex]])))
+            #?(:clj  [belib.test :as bt :refer [expect-ex return-ex return:error-if-ex]]
+               :cljs [belib.test :as bt :refer-macros [expect-ex return-ex return:error-if-ex]])))
 
-(hyperfiddle.rcf/enable! true)
+(hyperfiddle.rcf/enable! false)
 
 ; EXAMPLE
 ; see date-time.cljc, line 180
@@ -24,6 +25,17 @@
 
 (defn fail-fun []
   (throw (ex-info "ERR" {:data "some"})))
+
+(tests
+  (deflet
+    ;; use def as let in order to use it for working with repl
+    (def err (-> (fail-fun)
+                 return-ex
+                 ex-message))
+    err := "ERR"))
+
+
+
 
 (tests
 
@@ -62,4 +74,4 @@
 
 (tests
   "unify tests, if exceptions are different in cljs and clj - eg when parsing dates"
-  (return-error-kw-if-ex (fail-fun)) := :error)
+  (return:error-if-ex (fail-fun)) := :error)

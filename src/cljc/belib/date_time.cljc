@@ -82,8 +82,8 @@
     #?@(:cljs [[goog.string :as gstring]
                [java.time :refer [LocalDateTime LocalDate Year]]
 
-               [belib.test :refer-macros [expect-ex return-ex return-error-kw-if-ex]]])
-    #?@(:clj [[belib.test :refer [expect-ex return-ex return-error-kw-if-ex]]
+               [belib.test :refer-macros [expect-ex return-ex return:error-if-ex]]])
+    #?@(:clj [[belib.test :refer [expect-ex return-ex return:error-if-ex]]
               [java-time.api :as jt]]))
   #?(:clj
      (:import [java.time ZoneOffset LocalDateTime Year LocalDate ZonedDateTime]
@@ -91,7 +91,7 @@
               [java.util Date])))
 
 
-(hyperfiddle.rcf/enable! true)
+(hyperfiddle.rcf/enable! false)
 
 (comment
   (require 'playback.core) ; open the portal
@@ -112,12 +112,11 @@
   (type (dt "2003-01-01T00:00")) := LocalDateTime ; in cls and cljs!
   (instance? LocalDateTime (dt "2003-01-01T00:00")) := true
   (type (d "2023-01-05")) := LocalDate ; in cls and cljs!
-
   :end-test)
 
 (tests
   "parsing and predicates for dates"
-  (return-error-kw-if-ex (d "2003-1-1")) := :error
+  (return:error-if-ex (d "2003-1-1")) := :error
   (t/date? (d "2003-01-01")) := true
   (t/date? (dt "2003-01-01T00:00")) := false
   (t/date-time? (dt "2003-01-01T00:00")) := true
@@ -139,7 +138,6 @@
 (tests
   (ymd-hms-vec (t/date-time "2027-01-03T21:23:12")) := [2027 1 3 21 23 12]
   (t/year (t/date-time "2027-01-03T21:23:12")) := #?(:cljs (Year. 2027) :clj (Year/of 2027))
-
   :end-test)
 
 (defn ymd-vec
@@ -589,9 +587,9 @@
   (get-in [{} {:benno {:birthday (d "2034-12-01")}}]
           [1 :benno])
   ;(dt (d "2027-01-03"))
-  (bc/bpp (date-breakdown (t/date "2027-01-03")))
-  (bc/bpp (date-breakdown (t/date "2027-01-03T00:00:00")))
-  (bc/bpp (list-of-all-days (dt "2027-01-01T00:00") (dt "2027-01-05T00:00")))
+  (bc/pp (date-breakdown (t/date "2027-01-03")))
+  (bc/pp (date-breakdown (t/date "2027-01-03T00:00:00")))
+  (bc/pp (list-of-all-days (dt "2027-01-01T00:00") (dt "2027-01-05T00:00")))
 
   ; java.util.Date and js/Date are called insts in tick
   ; so date is ALWAYS local data
