@@ -3,6 +3,8 @@
             [hyperfiddle.rcf :refer [tests]]
             #?(:clj  [belib.test :as bt :refer [expect-ex return-ex return:error-if-ex]]
                :cljs [belib.test :as bt :refer-macros [expect-ex return-ex return:error-if-ex]])
+            #?(:clj  [snitch.core :refer [defn* defmethod* *fn *let]]
+               :cljs [snitch.core :refer-macros [defn* defmethod* *fn *let]])
             [clojure.spec.alpha :as s]
             [clojure.string :as str]
             [time-literals.read-write]))
@@ -15,7 +17,7 @@
 #?(:cljs (time-literals.read-write/print-time-literals-cljs!)
    :clj  (time-literals.read-write/print-time-literals-clj!))
 
-(hyperfiddle.rcf/enable! false)
+(hyperfiddle.rcf/enable! true)
 
 #_(defn debug-tools
     "get all the needed tools for debugging
@@ -71,6 +73,23 @@
         (apply f maps)))
     maps))
 
+(tests
+  (deep-merge-with + {:a {:b 1} :c 1} {:a {:b 2} :d 2})
+  := {:a {:b 3}, :c 1, :d 2}
+
+  "use first value only"
+  (deep-merge-with (fn [v1 _] v1) {:a {:b 1} :c 1} {:a {:b 2} :d 2})
+  := {:a {:b 1}, :c 1, :d 2}
+
+  "use second value only"
+  (deep-merge-with (fn [_ v2] v2) {:a {:b 1} :c 1} {:a {:b 2} :d 2})
+  := {:a {:b 2}, :c 1, :d 2}
+
+  (deep-merge-with (fn [v1 v2] (+ 10 (+ v1 v2))) {:a {:b 1} :c 1} {:a {:b 2} :d 2})
+  := {:a {:b 13}, :c 1, :d 2}
+
+  :end-test)
+
 (defn dissoc-in [m ks k]
   (update-in m ks dissoc k))
 
@@ -89,12 +108,16 @@
   (swap! local-id inc))
 
 (tests
-  (let [id1 (next-local-id)
-        id2 (next-local-id)]
-    id1 :<> id2))
+  (*let [id1 (next-local-id)
+         id2 (next-local-id)]
+        id1 :<> id2))
+(comment
+  id1 ; just use them as defs...
+  id2)
 
-(def pp #?(:cljs cljs.pprint/pprint
-           :clj  clojure.pprint/pprint))
+
+(def p #?(:cljs cljs.pprint/pprint
+          :clj  clojure.pprint/pprint))
 
 
 ;;-------------------------------------------
@@ -422,7 +445,7 @@
                   :male true}} :eid)
   := {2 {:eid 2, :age 16, :male false}, 3 {:eid 3, :age 16, :male true}}
 
-  (id-map [{;:eid  2
+  (id-map [{:eid  2
             :age  16
             :male false}
            {:eid  3

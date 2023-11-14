@@ -587,9 +587,9 @@
   (get-in [{} {:benno {:birthday (d "2034-12-01")}}]
           [1 :benno])
   ;(dt (d "2027-01-03"))
-  (bc/pp (date-breakdown (t/date "2027-01-03")))
-  (bc/pp (date-breakdown (t/date "2027-01-03T00:00:00")))
-  (bc/pp (list-of-all-days (dt "2027-01-01T00:00") (dt "2027-01-05T00:00")))
+  (bc/p (date-breakdown (t/date "2027-01-03")))
+  (bc/p (date-breakdown (t/date "2027-01-03T00:00:00")))
+  (bc/p (list-of-all-days (dt "2027-01-01T00:00") (dt "2027-01-05T00:00")))
 
   ; java.util.Date and js/Date are called insts in tick
   ; so date is ALWAYS local data
