@@ -2,10 +2,11 @@
   (:require [clojure.test :as t]
             [borkdude.deflet :refer [deflet]]
             [hyperfiddle.rcf :refer [tests]]
+            [belib.time+ :as ti]
             #?(:clj  [belib.test :as bt :refer [expect-ex return-ex return:error-if-ex]]
                :cljs [belib.test :as bt :refer-macros [expect-ex return-ex return:error-if-ex]])))
 
-(hyperfiddle.rcf/enable! false)
+(hyperfiddle.rcf/enable! true)
 
 ; EXAMPLE
 ; see date-time.cljc, line 180
@@ -35,6 +36,12 @@
     err := "ERR"))
 
 
+(tests
+  "make a speed test in milliseconds."
+  (ti/faster 25 (ti/time-data 100 (Thread/sleep 20))) := true
+  "an (inc 1) takes about 2.5 ns max on my machine"
+  (ti/faster (/ 4 1000 1000) (ti/time-data 100 (inc 1))) := true
+  :end-tests)
 
 
 (tests

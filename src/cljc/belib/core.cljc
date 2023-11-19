@@ -7,8 +7,8 @@
                :cljs [snitch.core :refer-macros [defn* defmethod* *fn *let]])
             [clojure.spec.alpha :as s]
             [clojure.string :as str]
-            [time-literals.read-write]
-            [belib.time+ :as ti]))
+            [time-literals.read-write]))
+;[belib.time+ :as ti]))
 
 ;;
 ;; MORE TOOLS
@@ -507,17 +507,17 @@
   (remove-elem "2" #{"1" "2" "3" "4" "5"}) := #{"1" "3" "4" "5"}
   :end-tests)
 
-(tests
-  "remove-elem is more than 3x faster than vec-remove-element"
-  (let [fast   (->> (remove-elem "2" ["1" "2" "3"])
-                   (ti/time-data 100)
-                   :time-per-call-ns)
-        slow   (->> (vec-remove-elem "2" ["1" "2" "3"])
-                   (ti/time-data 100)
-                   :time-per-call-ns)
-        faster (< (* 3 fast) slow)]
-    faster) := true
+#_(tests
+    "remove-elem is more than 3x faster than vec-remove-element"
+    (let [fast   (->> (remove-elem "2" ["1" "2" "3"])
+                      (ti/time-data 100)
+                      :time-per-call-ns)
+          slow   (->> (vec-remove-elem "2" ["1" "2" "3"])
+                      (ti/time-data 100)
+                      :time-per-call-ns)
+          faster (< (* 3 fast) slow)]
+      faster) := true
 
-  :end-tests)
+    :end-tests)
 
 

@@ -108,9 +108,18 @@
   (defmacro time-data
     "Returns a map containing the average time per call in microseconds,
      allocated bytes per call, and the number of iterations,
-     for the given duration in milliseconds."
+     for the given duration in milliseconds.
+     E.g.:
+     {:time-per-call-ns 12.8  ; Keeping time in nanoseconds
+      :alloc-per-call-b 128   ; alloced bytes per call
+      :iterations 234         ; iterations of test
+      :first-res :the-result} ; result of first iteration"
     [?duration-in-ms & body]
     (let [[duration body] (if (integer? ?duration-in-ms)
                             [?duration-in-ms body]
                             [2000 (cons ?duration-in-ms body)])]
       `(~time* ~duration (fn [] ~@body)))))
+
+(defn faster [milliseconds time-data-map]
+  "Returns true if the :time-per-call-ns is less than milliseconds."
+  (< (:time-per-call-ns time-data-map) (* milliseconds 1000 1000)))
