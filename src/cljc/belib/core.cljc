@@ -7,7 +7,8 @@
                :cljs [snitch.core :refer-macros [defn* defmethod* *fn *let]])
             [clojure.spec.alpha :as s]
             [clojure.string :as str]
-            [time-literals.read-write]))
+            [time-literals.read-write]
+            [belib.time+ :as ti]))
 
 ;;
 ;; MORE TOOLS
@@ -49,6 +50,8 @@
 (comment
   (println (test-belib)))
 
+; TODO adapt signature
+; isn't there a more
 (defn map-kv
   "map the values of a map:
   (map-kv {:a 1 :b 2} inc))
@@ -464,5 +467,57 @@
       ex-message)
   := "Assert failed: every entity needs to be a map with entity-id called: :eid\n(some? entity-id)"
 
+  :end-tests)
+
+(defn vec-remove-idx
+  "remove elem at pos in coll"
+  [pos coll]
+  ;(assert (vector? coll))
+  (into (subvec coll 0 pos) (subvec coll (inc pos))))
+
+(defn vec-remove-elem
+  "Remove FIRST element that equals elem from vector."
+  [elem coll]
+  ;(assert (vector? coll))
+  (let [pos (.indexOf coll elem)]
+    (if (>= pos 0)
+      (vec-remove-idx pos coll)
+      coll)))
+
+(tests
+  (vec-remove-idx 2 ["1" "2" "3" "4" "5"]) := ["1" "2" "4" "5"]
+  (vec-remove-elem "2" ["1" "2" "3" "4" "5"]) := ["1" "3" "4" "5"]
+  (vec-remove-elem "X" ["1" "2" "3" "4" "5"]) := ["1" "2" "3" "4" "5"]
 
   :end-tests)
+
+(defn remove-elem
+  "Remove ALL elements that equals elem from vector.
+  coll may be list, set or vector.
+  Returns a collection of type coll."
+  [elem coll]
+  (let [removed (remove #(= elem %) coll)]
+    (if (list? coll)
+      removed
+      (into (empty coll) removed))))
+
+(tests
+  (remove-elem "2" ["1" "2" "3" "4" "5"]) := ["1" "3" "4" "5"]
+  (remove-elem "2" '("1" "2" "3" "4" "5")) := '("1" "3" "4" "5")
+  (remove-elem "2" #{"1" "2" "3" "4" "5"}) := #{"1" "3" "4" "5"}
+  :end-tests)
+
+(tests
+  "remove-elem is more than 3x faster than vec-remove-element"
+  (let [fast   (->> (remove-elem "2" ["1" "2" "3"])
+                   (ti/time-data 100)
+                   :time-per-call-ns)
+        slow   (->> (vec-remove-elem "2" ["1" "2" "3"])
+                   (ti/time-data 100)
+                   :time-per-call-ns)
+        faster (< (* 3 fast) slow)]
+    faster) := true
+
+  :end-tests)
+
+

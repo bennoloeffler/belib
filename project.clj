@@ -14,7 +14,9 @@
                            [funcool/cuerdas "2022.06.16-403"]
                            [metosin/malli "0.11.0"]
                            [io.github.borkdude/deflet "0.1.0"]
-                           [org.clojars.abhinav/snitch "0.1.13"]]
+                           [org.clojars.abhinav/snitch "0.1.13"]
+                           [clj-http "3.12.3"]]
+
             :source-paths ["src/cljc"]
             :aliases {"kaocha"   ["with-profile" "+kaocha" "run" "-m" "kaocha.runner" #_"--plugin" #_"notifier" "--watch"]
                       "coverage" ["with-profile" "+kaocha" "run" "-m" "kaocha.runner" "--plugin" "cloverage"]}

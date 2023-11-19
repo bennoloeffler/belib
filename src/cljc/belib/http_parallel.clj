@@ -1,7 +1,23 @@
 (ns belib.http-parallel
-  (:require [clojure.core.async :refer [go go-loop <!! <! >! chan close! thread alts! alts!! timeout]]))
+  (:require
+    [clojure.core.async :refer [go go-loop <!! <! >! chan close! thread alts! alts!! timeout]]
+    [hyperfiddle.rcf :refer [tests]]
+    [clj-http.client :as client]
+    [belib.core :refer [vec-remove-elem]])
+  (:import
+    [clojure.core.async.impl.channels ManyToManyChannel]))
 
 
+(defn chan?
+  "is an object a core.async channel?
+   ManyToManyChannel"
+  [obj]
+  (instance? ManyToManyChannel obj))
+
+(tests
+  (chan? (chan)) := true
+  (chan? :no-chan) := false
+  :end-tests)
 
 ;;
 ;; call http api in parallel with core.async
@@ -37,6 +53,11 @@
         {:param text
          :result result}))))
 
+(tests
+  (api-fake "abcd12345")
+  := {:param "abcd12345", :result [0.97 0.98 0.99 1.0 0.49]}
+
+  :end-test)
 
 
 (defn n-api-fake-fns
@@ -48,7 +69,8 @@
 
 
 (defn fn-in-chan
-  "Run a fn-call in a go-block and return a channel with the result."
+  "Run a fn-call in a go-block and return a channel with the result.
+  if (:exception (fn-in-chan ...)) is nil, the call was successful."
   [fn-call]
   (let [result-chan (chan)]
     (go (>! result-chan
@@ -65,16 +87,32 @@
                                      :data (ex-data e)}))))
     result-chan))
 
-(comment
-  (let [a-fn #(+ 40 2)        ; a fn that returns 42
-        ch   (fn-in-chan a-fn); get the chan
-        val  (<!! ch)]        ; get the val
-    val) ;should be 42
+(tests
 
-  nil)
+  "normal call"
+  (let [a-fn #(+ 40 2)        ; a fn that returns 42
+        ch   (fn-in-chan a-fn); wrap in a channel
+        val  (<!! ch)]        ; get the val
+    val) := 42
+
+  "exception"
+  (let [a-fn #(throw (ex-info "test" {:data "test"})) ; a fn that throws
+        ch   (fn-in-chan a-fn); wrap in a channel
+        val  (<!! ch)]
+    val) := {:exception "test", :data {:data "test"}}
+
+  "nil to channel"
+  (let [a-fn #(seq []) ; a fn that returns nil
+        ch   (fn-in-chan a-fn); wrap in a channel
+        val  (<!! ch)]
+    val) := {:exception :got-nil-from-fn-for-channel}
+
+  :end-tests)
+
+
 
 (defn timeout-channel
-  "try to get value from v-chan. If it takes longer than
+  "Try to get value from v-chan. If it takes longer than
    timeout-ms, return {:exception :user-timeout :data {:ms timeout-ms}}."
   [v-chan timeout-ms]
   (let [t-chan (timeout timeout-ms)
@@ -84,28 +122,42 @@
       result)))
 
 (defn fn-timeout
-  ""
+  "Try to get value from fn-call. If the fn-call takes longer than
+   timeout-ms, return {:exception :user-timeout :data {:ms timeout-ms}}."
   [fn-call timeout-ms]
   (let [v-chan (fn-in-chan fn-call)]
     (timeout-channel v-chan timeout-ms)))
 
-(comment
+(tests
   (fn-timeout #(Thread/sleep 1000)  500)
-  (fn-timeout #(Thread/sleep 100) 500) ;nil exception
-  ;(fn-timeout #((Thread/sleep 100) :result) 500)
-  (fn-timeout #(do (Thread/sleep 100) :result) 500)
-  (fn-timeout (fn [](Thread/sleep 100) :result) 500))
+  := {:exception :user-timeout, :data {:ms 500}}
 
+  (fn-timeout #(Thread/sleep 100) 500) ; returns nil to channel
+  := {:exception :got-nil-from-fn-for-channel}
+
+  "java.lang.NullPointerException when calling (nil ...)"
+  (fn-timeout #((println)) 500)
+  := {:exception nil, :data nil}
+
+  (fn-timeout #(do (Thread/sleep 100) :result) 500)
+  := :result
+
+  (fn-timeout (fn [](Thread/sleep 100) :result) 500)
+  := :result
+
+  :end-tests)
 
 
 (defn chans-of-fns
-  "Creates n channels with the results of the
+  "Creates channels with the results of the
   functions in vector fns."
   [fns]
   (mapv #(fn-in-chan %) fns))
 
-(comment
-  (chans-of-fns (n-api-fake-fns 50)))
+(tests
+  (map chan? (chans-of-fns (n-api-fake-fns 5)))
+  := [true true true true true]
+  :end-tests)
 
 (defn results-of-chans
   "Returns a vector of the results of the channels.
@@ -162,7 +214,68 @@
 
   nil)
 
+;;
+;; USE ASYNC HTTP API
+;;
 
+;;
+;; call http api in parallel with core.async
+;;
+
+(defn api-to-channel
+  "Call an url per get and return a channel immediately.
+   The result is put into the channel when the response
+   is received."
+  [url]
+  (let [result-ch (chan)]
+    (client/get url
+                {:async? true}
+                ;; respond callback
+                (fn [response] (go (>! result-ch response)
+                                   (close! result-ch)))
+                ;; raise callback
+                (fn [exception] (go (>! result-ch {:exception (.getMessage exception)
+                                                   :data exception})
+                                    (close! result-ch))))
+    result-ch))
+
+
+(defn results-of-chns
+  "Returns a vector of the results of the channels.
+   Each channel may only contain ONE result!
+   Channels should be closed."
+  [channels timeout-ms]
+  (let [t-ch (timeout timeout-ms)]
+    (loop [results []
+           channels channels]
+      (if (seq channels)
+        (let [[result ch] (alts!! (conj channels t-ch))]
+          (if (= ch t-ch)
+            [:timeout]
+            (recur (conj results result)
+                   (vec-remove-elem ch channels))))
+        results))))
+
+(defn chans-n
+  "create n channels with a dummy api call to mocky.io"
+  [n]
+  (->> #(api-to-channel "https://run.mocky.io/v3/0ad167a9-dcb3-4aff-902b-85d229751a4a")
+       (repeat n)))
+
+(tests
+
+  (:body (<!! (api-to-channel "https://run.mocky.io/v3/0ad167a9-dcb3-4aff-902b-85d229751a4a")))
+  := ""
+
+
+  (count (results-of-chns
+           (mapv
+             #(%)
+             (chans-n 5))
+           2000))
+  := 5
+
+  :end-tests)
 
 
 
