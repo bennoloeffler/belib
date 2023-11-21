@@ -197,3 +197,19 @@
   := "unknown date format: blah12/31/2023"
 
   :end-tests)
+
+(defn validate-messy-date
+  "Validate a 'messy date' string. Returns a vector of errors or nil.
+   start and end are tick/dates."
+  [date-str start end]
+  (let [d     (try {:date (parse-messy-date date-str)}
+                   (catch js/Error e {:exception (ex-message e)
+                                      :data      (ex-data e)}))
+        error (:exception d)
+        date  (:date d)]
+    (if error
+      [error]
+      (cond-> []
+              (t/> date end) (conj (str "date is after " end))
+              (t/< date start) (conj (str "date is before " start))
+              true seq))))

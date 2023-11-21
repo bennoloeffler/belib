@@ -18,7 +18,7 @@
 #?(:cljs (time-literals.read-write/print-time-literals-cljs!)
    :clj  (time-literals.read-write/print-time-literals-clj!))
 
-(hyperfiddle.rcf/enable! true)
+(hyperfiddle.rcf/enable! false)
 
 #_(defn debug-tools
     "get all the needed tools for debugging

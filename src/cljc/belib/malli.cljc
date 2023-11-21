@@ -12,7 +12,7 @@
     [clojure.string :as str]))
 
 
-(hyperfiddle.rcf/enable! true)
+(hyperfiddle.rcf/enable! false)
 
 ;;
 ;; little helper...
