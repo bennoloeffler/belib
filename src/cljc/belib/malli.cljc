@@ -12,7 +12,7 @@
     [clojure.string :as str]))
 
 
-(hyperfiddle.rcf/enable! false)
+(hyperfiddle.rcf/enable! true)
 
 ;;
 ;; little helper...
@@ -289,7 +289,7 @@
 (def set-of-uppercase-letters (set (seq (clojure.string/upper-case letters))))
 (def digits "0123456789")
 (def set-of-digits (set (seq digits)))
-(def specials "!#$%&/()=?_-.,;'´`")
+(def specials "\\„^!\"§$%&/()=?`*+'#_-:.;,<>|@€~")
 (def set-of-specials (set (seq specials)))
 (def re-whitespace #"\s")
 
@@ -318,7 +318,7 @@
 
   (hum-err password-schema "toos") := ["should be between 8 and 40 characters"
                                        "should contain at least one number like: 0123456789"
-                                       "should contain at least one special character: !#$%&/()=?_-.,;'´`"
+                                       "should contain at least one special character: \\„^!\"§$%&/()=?`*+'#_-:.;,<>|@€~"
                                        "should contain uppercase and lowercase letters, e.g. Ab..."]
 
   (hum-err password-schema "too-S") := ["should be between 8 and 40 characters"

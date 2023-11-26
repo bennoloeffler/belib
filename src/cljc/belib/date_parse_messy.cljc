@@ -203,8 +203,10 @@
    start and end are tick/dates."
   [date-str start end]
   (let [d     (try {:date (parse-messy-date date-str)}
-                   (catch js/Error e {:exception (ex-message e)
-                                      :data      (ex-data e)}))
+                   (catch #?(:clj  clojure.lang.ExceptionInfo
+                             :cljs cljs.core.ExceptionInfo)
+                          e {:exception (ex-message e)
+                             :data      (ex-data e)}))
         error (:exception d)
         date  (:date d)]
     (if error

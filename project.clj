@@ -3,10 +3,10 @@
             :url "https://github.com/bennoloeffler/belib.git"
             :license {:name "WTFPL – Do What the Fuck You Want to Public License"
                       :url  "http://www.wtfpl.net/"}
-            :dependencies [[org.clojure/clojure "1.10.3"]
+            :dependencies [[org.clojure/clojure "1.11.1"]
                            [org.clojure/test.check "1.1.1"]
                            [com.draines/postal "2.0.4"]
-                           [org.clojure/core.async "1.3.610"]
+                           [org.clojure/core.async "1.6.673"]
                            [tick "0.6.2"]
                            [clojure.java-time "1.2.0"]
                            [com.hyperfiddle/rcf "20220405"]
@@ -21,7 +21,7 @@
             :aliases {"kaocha"   ["with-profile" "+kaocha" "run" "-m" "kaocha.runner" #_"--plugin" #_"notifier" "--watch"]
                       "coverage" ["with-profile" "+kaocha" "run" "-m" "kaocha.runner" "--plugin" "cloverage"]}
             :profiles {:kaocha
-                       {:dependencies [[lambdaisland/kaocha "1.67.1055"]
-                                       [lambdaisland/kaocha-cloverage "1.0.75"]]}}
+                       {:dependencies [[lambdaisland/kaocha "1.77.1236"]
+                                       [lambdaisland/kaocha-cloverage "1.1.89"]]}}
 
-            :repl-options {:init-ns belib.core})
+  :repl-options {:init-ns belib.core})
