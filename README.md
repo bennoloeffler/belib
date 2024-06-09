@@ -7,20 +7,21 @@ Short: BEL. So: belib
 
 ## Usage
 
-1. Just use it from clojars. 
-See current version.
+1 Just use it from clojars.  
+See current version.  
 ```
 lein search belib
 ```
 
-Examples:
+Examples:  
 ```
 [belib "X.Y.Z]
 [belib "X.Y.Z-SNAPSHOT]
 ```
 
 Or 
-2. checkout and install it locally by
+ 
+2 checkout and install it locally by
 
 ```
 cd ~/projects
@@ -30,7 +31,7 @@ lein install
 ```
 And maybe  
 
-3. Use lein checkout dependencies  
+3 use lein checkout dependencies  
 in the target project x,  
 if you would like to adapt belib:
 ```
@@ -41,7 +42,8 @@ ln -s ../../belib
 ```
 
 finally, it looks like  
-in your **projects** folder:
+in your **projects** folder:  
+
 ```
 x (the app)
 │
@@ -58,7 +60,10 @@ belib
 └── src
       ├── cljc
       └── clj    
-```
+``` 
+
+
+## I DONT GET IT IN INTELLIJ WITH CURSIVE
 Should work with repl.  
 **In order to make it work with cursive,
 import the project.clj of belib in the

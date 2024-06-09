@@ -7,6 +7,7 @@
   (:import
     [clojure.core.async.impl.channels ManyToManyChannel]))
 
+(System/setProperty "clojure.core.async.pool-size" "500")
 
 (defn chan?
   "is an object a core.async channel?
@@ -210,6 +211,7 @@
       first
       time)
 
+  (api-fake "abcd12345")
   (time (results-of-fns (n-api-fake-fns 550) 700))
 
   nil)

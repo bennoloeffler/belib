@@ -71,6 +71,8 @@
     [cuerdas.core :as str]
     [cljc.java-time.local-date :as local-date]
     [tick.core :as t]
+    [clojure.edn :as edn]
+    [time-literals.read-write]
     [cljc.java-time.temporal.chrono-unit :as cu]
     [hyperfiddle.rcf :refer [tests]]
     [tick.alpha.interval :as tai]
@@ -91,7 +93,13 @@
               [java.util Date])))
 
 
-(hyperfiddle.rcf/enable! false)
+(hyperfiddle.rcf/enable! true)
+
+; to read write edn:
+; https://github.com/henryw374/time-literals
+
+
+
 
 (comment
   (require 'playback.core) ; open the portal
@@ -102,6 +110,16 @@
 (def d
   "create a date, e.g (d \"2003-01-01\")"
   t/date)
+
+(tests
+  "write and read data by edn"
+  (edn/read-string
+    {:readers time-literals.read-write/tags}
+    "#time/date \"2011-01-01\"") := (d "2011-01-01")
+  (edn/read-string
+    {:readers time-literals.read-write/tags}
+    (pr-str (d "2011-01-01"))) := (d "2011-01-01")
+  :end-test)
 
 (def dt
   "create a date-time, e.g. (dt \"2003-01-01T00:00\")"
@@ -253,6 +271,8 @@
         (days start end))))
 
 (comment
+  (t/date-time (t/instant 1702885913228))
+
   (t/days (t/duration (tai/new-interval (d "2000-01-01") (d "2000-12-31"))))
   (cu/between cu/days (d "2023-08-31") (d "2023-09-01"))
   (cu/between cu/days (d "2023-09-30") (d "2023-09-29")))
@@ -920,7 +940,7 @@
 
 
 (tests
-
+  (def ew (->EpochWeek 0))
   "everything about converting EpochWeek"
   (let [ew (->EpochWeek 0)]
     (to-date ew) := (d "1969-12-29")
