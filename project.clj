@@ -13,8 +13,10 @@
                            [net.cgrand/macrovich "0.2.1"]
                            [funcool/cuerdas "2022.06.16-403"]
                            [metosin/malli "0.11.0"]
-                           [io.github.borkdude/deflet "0.1.0"]
-                           [org.clojars.abhinav/snitch "0.1.13"]
+                           [io.github.borkdude/deflet "0.1.0"]   ; (deflet (def...)
+                           [org.clojars.abhinav/snitch "0.1.13"] ; (*let [...]
+                           [dom-top "1.0.9"] ; loopr ; https://aphyr.com/posts/360-loopr-a-loop-reduction-macro-for-clojure
+                           [swiss-arrows "1.0.0"] ; -<> macro
                            [clj-http "3.12.3"]]
 
             :source-paths ["src/cljc"]

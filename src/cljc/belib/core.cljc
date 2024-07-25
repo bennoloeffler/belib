@@ -7,7 +7,11 @@
                :cljs [snitch.core :refer-macros [defn* defmethod* *fn *let]])
             [clojure.spec.alpha :as s]
             [clojure.string :as str]
-            [time-literals.read-write]))
+            [time-literals.read-write]
+            [dom-top.core :refer [loopr assert+]]
+            [swiss.arrows :refer [-<> -<>>]]))
+
+
 ;[belib.time+ :as ti]))
 
 ;;
@@ -18,7 +22,7 @@
 #?(:cljs (time-literals.read-write/print-time-literals-cljs!)
    :clj  (time-literals.read-write/print-time-literals-clj!))
 
-(hyperfiddle.rcf/enable! false)
+(hyperfiddle.rcf/enable! true)
 
 #_(defn debug-tools
     "get all the needed tools for debugging
@@ -521,3 +525,39 @@
     :end-tests)
 
 
+(tests
+  (loopr [add 0
+          mult 1] ; first vector of bindings is the accumulator(s)
+         [a (range 1 4)
+          b (range 1 4)] ; second binding is the sequence(es) to iterate over, like for
+         (do
+           ;(println a b)
+           (recur (+ add a b)
+                  (* mult a b))))
+  := [36 46656] ; the both final accumulators
+  :end-tests)
+
+(tests
+  (-<> (range 10)
+       (filter even? <>)
+       (map str <>)
+       vec
+       (conj "X")
+       str/join
+       (take 3 <>)
+       (map long <>)
+       (reduce + <>)
+       [:before <> :after]) := [:before 150 :after]
+
+  (-<>> (range 10)
+        (filter even?)
+        (map str)
+        vec
+        (conj <> "X")
+        str/join
+        (take 3)
+        (map long)
+        (reduce +)
+        [:before <> :after]) := [:before 150 :after]
+
+  :end-test)
