@@ -73,6 +73,11 @@ Otherwise, the locally installed jar will be used!
 If a target project of belib in intellij exists,    
 it seems to be overwritten and broken afterwards...  
 
+## TODO
+add from other mature utilities libs:
+- [ ] tupelo
+- [ ] medley
+
 ## License
 
 Copyright © 2023 Benno Löffler

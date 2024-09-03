@@ -6,10 +6,11 @@
             #?(:clj  [snitch.core :refer [defn* defmethod* *fn *let]]
                :cljs [snitch.core :refer-macros [defn* defmethod* *fn *let]])
             [clojure.spec.alpha :as s]
+            [borkdude.deflet :refer [deflet]]
             [clojure.string :as str]
             [time-literals.read-write]
-            [dom-top.core :refer [loopr assert+]]
-            [swiss.arrows :refer [-<> -<>>]]))
+            [dom-top.core :as dt]
+            [swiss.arrows :as sa])) ;:refer [-<> -<>>]]))
 
 
 ;[belib.time+ :as ti]))
@@ -65,6 +66,21 @@
 
 (comment
   (map-kv {:a 1 :b 2} inc))
+
+(defn filter-kv [pred map]
+  (reduce-kv (fn [accumulator key value]
+               (if (pred key value)
+                 (assoc accumulator key value)
+                 accumulator)) {} map))
+
+(tests
+  (filter-kv (fn [key _]
+               (not (= key "a"))) {"a" {:some "a"}
+                                   "b" {:some "b"}
+                                   "c" {:some "c"}})
+
+  := {"b" {:some "b"}
+      "c" {:some "c"}})
 
 (defn deep-merge-with
   "Like merge-with, but merges maps recursively, applying the given fn
@@ -308,7 +324,12 @@
      (parse-long longest) := (.-MAX_SAFE_INTEGER js/Number) ; 9007199254740991
      :end-test))
 
-(defn long-str [& strings] (str/join "\n" strings))
+(defn long-str
+  "Join strings with newline.
+  (long-str \"one long\"
+            \"two long\")"
+  [& strings] (str/join "\n" strings))
+
 (defn long-str-one-line [& strings] (str/join "" strings))
 
 (defn str-re
@@ -525,6 +546,154 @@
     :end-tests)
 
 
+(defmacro loopr
+  "SEE: https://aphyr.com/posts/360-loopr-a-loop-reduction-macro-for-clojure
+  SEE: https://github.com/aphyr/dom-top
+
+  Like `loop`, but for reducing over (possibly nested) collections. Compared to
+  `loop`, makes iteration implicit. Compared to reduce, eliminates the need for
+  nested reductions, fn wrappers, and destructuring multiple accumulators.
+  Compared to `for`, loopr is eager, and lets you carry accumulators.
+
+  Takes an initial binding vector for accumulator variables, (like `loop`);
+  then a binding vector of loop variables to collections (like `for`); then a
+  body form, then an optional final form. Iterates over each element of the
+  collections, like `for` would, and evaluates body with that combination of
+  elements bound.
+
+  Like `loop`, the body should generally contain one or more (recur ...) forms
+  with new values for each accumulator. Any non-recur form in tail position
+  causes loopr to return that value immediately.
+
+  When the loop completes normally, loopr returns:
+
+  - The value of the final expression, which has access to the accumulators, or
+  - If no `final` is given...
+    - With zero accumulators, returns `nil`
+    - With one accumulator, returns that accumulator
+    - With multiple accumulators, returns a vector of each.
+
+  For example,
+
+    (loopr [sum 0]
+           [x [1 2 3]]
+      (recur (+ sum x)))
+
+  returns 6: the sum of 1, 2 and 3.
+
+  This would typically be written as `(reduce + [1 2 3])`, and for single
+  accumulators or single loops using `reduce` or `loop` is often more concise.
+  Loopred's power comes from its ability to carry multiple accumulators and to
+  traverse multiple dimensions. For instance, to get the mean of all elements
+  in a matrix:
+
+    (loopr [count 0
+            sum   0]
+           [row [[1 2 3] [4 5 6] [7 8 9]]
+            x   row]
+      (recur (inc count) (+ sum x))
+      (/ sum count))
+    ; returns 45/9 = 5
+
+  Here, we have a body which recurs, and a final expression `(/ sum count)`,
+  which is evaluated with the final value of the accumulators. Compare this to
+  the equivalent nested reduce:
+
+    (let [[sum count] (reduce (fn [[count sum] row]
+                                (reduce (fn [[count sum] x]
+                                          [(inc count) (+ sum x)])
+                                        [count sum]
+                                        row))
+                              [0 0]
+                              [[1 2 3] [4 5 6] [7 8 9]])]
+      (/ sum count))
+
+  This requires an enclosing `let` binding to transform the loop results, two
+  calls to reduce, each with their own function, creating and destructuring
+  vectors at each level, and keeping track of accumulator initial values far
+  from their point of use. The structure of accumulators is encoded in five
+  places instead of two, which makes it harder to change accumulators later.
+  It also requires deeper indentation. Here's the same loop expressed as a
+  flat `loop` over seqs:
+
+    (loop [count 0
+           sum   0
+           rows  [[1 2 3] [4 5 6] [7 8 9]]
+           row   (first rows)]
+      (if-not (seq rows)
+        (/ sum count)       ; Done with iteration
+        (if-not (seq row)   ; Done with row; move on to next row
+          (recur count sum (next rows) (first (next rows)))
+          (let [[x & row'] row]
+            (recur (inc count) (+ sum x) rows row')))))
+
+  This version is less indented but also considerably longer, and the
+  interweaving of traversal machinery and accumulation logic makes it
+  difficult to understand. It is also significantly slower than the nested
+  `reduce`, on account of seq allocation--vectors can more efficiently reduce
+  over their internal structure.
+
+  Depending on how many accumulators are at play, and which data structures are
+  being traversed, it may be faster to use `loop` with an iterator, `loop` with
+  `aget`, or `reduce` with a function. loopr compiles to (possibly nested)
+  `reduce` when given a single accumulator, and to (possibly nested) `loop`
+  with mutable iterators when given multiple accumulators. You can also control
+  the iteration tactic for each collection explicitly:
+
+    (loopr [count 0
+            sum   0]
+           [row [[1 2 3] [4 5 6] [7 8 9]] :via :reduce
+            x   row                       :via :iterator]
+      (recur (inc count) (+ sum x))
+      (/ sum count))
+
+  This compiles into a `reduce` over rows, and a `loop` over each row using an
+  iterators. For array iteration, use `:via :array`:
+
+    (loopr [sum 0]
+           [x (long-array (range 10000)) :via :array]
+           (recur (+ sum x)))
+    ; => 49995000
+
+  Note that alength/aget are *very* sensitive to type hints; use `lein check`
+  to ensure that you're not using reflection, and add type hints as necessary.
+  On my older xeon, this is roughly an order of magnitude faster than (reduce +
+  longs). For nested array reduction, make sure to hint inner collections, like
+  so:
+
+    (loopr [sum 0]
+           [row                        matrix :via :array
+            x   ^\"[Ljava.lang.Long;\" row    :via :array]
+           (recur (+ sum x)))))
+
+  Like `loop`, `loopr` supports early return. Any non `(recur ...)` form in
+  tail position in the body is returned immediately, without visiting any other
+  elements in the collection(s). To search for the first odd number in
+  collection, returning that number and its index:
+
+    (loopr [i 0]
+           [x [0 3 4 5]]
+           (if (odd? x)
+             {:i i, :x x}
+             (recur (inc i))))
+    ; => {:i 1, :x 3}
+
+  When no accumulators are provided, loopr still iterates, returning any
+  early-returned value, or the final expression when iteration completes, or
+  `nil` otherwise. Here we find an key in a map by value. Note that we can also
+  destructure in iterator bindings.
+
+    (loopr []
+           [[k v] {:x 1, :y 2}]
+           (if (= v 2)
+             k
+             (recur))
+           :not-found)
+    ; => :y"
+  [& forms]
+  `(dt/loopr ~@forms))
+
+
 (tests
   (loopr [add 0
           mult 1] ; first vector of bindings is the accumulator(s)
@@ -536,6 +705,64 @@
                   (* mult a b))))
   := [36 46656] ; the both final accumulators
   :end-tests)
+
+
+(defmacro assert+
+  "SEE: https://github.com/aphyr/dom-top
+
+   Like Clojure assert, but throws customizable exceptions (by default,
+   IllegalArgumentException), and returns the value it checks, instead of nil.
+
+   Clojure assertions are a little weird. Syntactically, they're a great
+   candidate for runtime validation of state--making sure you got an int instead
+   of a map, or that an object you looked up was present. However, they don't
+   *return* the thing you pass them, which makes it a bit akward to use them in
+   nested expressions. You typically have to do a let binding and then assert.
+   So... let's return truthy values! Now you can
+
+       (assert+ (fetch-person-from-db :liu)
+                \"Couldn't fetch Liu!\")
+
+   Moreover, Clojure assertions sensibly throw AssertionError. However,
+   AssertionError is an error that \"should never occur\" and \"a reasonable
+   application should not try to catch.\" There are LOTS of cases where you DO
+   expect assertions to fail sometimes and intend to catch them: for instance,
+   validating user input, or bounds checks. So we're going to throw
+   customizable exceptions.
+
+   Oh, and you can throw maps too. Those become ex-infos.
+
+   (assert+ (thing? that)
+            {:type   :wasn't-a-thing
+             :I'm    [:so :sorry]})"
+  [& forms]
+  `(dt/assert+ ~@forms))
+
+;
+; -<> and -<>> macros
+; SWISS ARROW
+; see https://github.com/rplevy/swiss-arrows
+;
+
+(defmacro -<>
+  "the 'diamond wand': top-level insertion of x in place of single
+   positional '<>' symbol within the threaded form if present, otherwise
+   mostly behave as the thread-first macro. Also works with hash literals
+   and vectors.
+
+   SEE: https://github.com/rplevy/swiss-arrows"
+  [& forms]
+  `(sa/-<> ~@forms))
+
+(defmacro -<>>
+  "the 'diamond spear': top-level insertion of x in place of single
+   positional '<>' symbol within the threaded form if present, otherwise
+   mostly behave as the thread-last macro. Also works with hash literals
+   and vectors.
+
+   SEE: https://github.com/rplevy/swiss-arrows"
+  [& forms]
+  `(sa/-<>> ~@forms))
 
 (tests
   (-<> (range 10)
@@ -561,3 +788,53 @@
         [:before <> :after]) := [:before 150 :after]
 
   :end-test)
+
+(defmacro not-yet
+  "Throws an exception: 'not yet implemented'."
+  []
+  `(throw (ex-info (str "not yet implemented exception") {})))
+
+(defn boom
+  "throw an not-yet-implemented exception"
+  [something]
+  (not-yet))
+
+(tests
+  (expect-ex (boom nil)) := clojure.lang.ExceptionInfo
+  :end-test)
+
+
+(defn is-subpath?
+  "Checks if path1 is a subsequence of path2 using loop and recur."
+  [path1 path2]
+  (if (or (nil? path1)
+          (empty? path1))
+    true
+    (let [subs-of-2 (partition (count path1) 1 path2)
+          s1        (seq path1)]
+      (boolean (some true? (map #(= % s1) subs-of-2))))))
+
+
+(tests
+  (is-subpath? [30 5] [10 2 3 30 5]) := true
+  (is-subpath? [10 5] [10 2 3 30 5]) := false
+  (is-subpath? [] [10 2 3 30 5]) := true
+  (is-subpath? [30 5] [30 1 5]) := false
+  (is-subpath? [30 5] [30 1 30 5]) := true)
+
+
+(defn remove-subpaths
+  "Removes subpaths from the collection of paths."
+  [paths]
+  (filter (fn [path]
+            (not-any? #(and (not= path %)
+                            (is-subpath? path %))
+                      paths))
+          paths))
+
+(tests
+  (deflet
+    (def paths [[10 2 3 30 5] [4 4 4] [30 5] [10 2 3] [5] [10 2 3 30]])
+    (remove-subpaths paths) := [[10 2 3 30 5] [4 4 4]])
+
+  :end-tests)
