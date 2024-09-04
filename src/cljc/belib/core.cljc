@@ -1,4 +1,5 @@
 (ns belib.core
+  (:use [tupelo.core :as tupelo])
   (:require [tick.core :as t]
             [hyperfiddle.rcf :refer [tests]]
             #?(:clj  [belib.test :as bt :refer [expect-ex return-ex return:error-if-ex]]
@@ -10,8 +11,13 @@
             [clojure.string :as str]
             [time-literals.read-write]
             [dom-top.core :as dt]
-            [swiss.arrows :as sa])) ;:refer [-<> -<>>]]))
 
+            [swiss.arrows :as sa])) ; REMOVE. USE it-> ;:refer [-<> -<>>]]))
+
+(comment
+  (not= 1 2)
+  (glue "belib.cor" \e)
+  (->vector 1 (<> [2 3 4 5 6 7 8]) 9))
 
 ;[belib.time+ :as ti]))
 
@@ -113,8 +119,9 @@
 
   :end-test)
 
-(defn dissoc-in [m ks k]
-  (update-in m ks dissoc k))
+;; USE TUPELO
+#_(defn dissoc-in [m ks k]
+    (update-in m ks dissoc k))
 
 #?(:clj
    (defonce local-id (atom (System/currentTimeMillis)))
@@ -213,11 +220,12 @@
     (keys (assoc (sorted-map-by-keys m :val) :X {:val 12})) := '(:X :F :A :B :E :C :D)))
 
 ;; this is for pow - especially in js
-(defn bigint?
-  "Returns true if n is a BigInt"
-  [n]
-  #?(:clj  (instance? clojure.lang.BigInt n)
-     :cljs (= js/BigInt (type n))))
+;; USE TUPELO
+#_(defn bigint?
+    "Returns true if n is a BigInt"
+    [n]
+    #?(:clj  (instance? clojure.lang.BigInt n)
+       :cljs (= js/BigInt (type n))))
 
 (defn pow
   "(pow 2 3) = (* 2 2 2),
@@ -416,9 +424,6 @@
   (balanced? "") := true
   (balanced? "()(") := false
   (balanced? "(})") := false)
-
-
-
 
 (defn idx-map
   "Returns a map of elements of the vector vec with the idx as key."
@@ -794,7 +799,7 @@
   []
   `(throw (ex-info (str "not yet implemented exception") {})))
 
-(defn boom
+(defn- boom
   "throw an not-yet-implemented exception"
   [something]
   (not-yet))
